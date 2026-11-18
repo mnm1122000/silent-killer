@@ -1,0 +1,786 @@
+[
+ {
+  "id": "SK-001",
+  "title": "The Banana Incident",
+  "location": "Kitchen",
+  "cause": "Slipped on a banana peel",
+  "text": "{PLAYER} was found in the kitchen at {TIME}, apparently defeated by a banana peel in what investigators are calling The Banana Incident."
+ },
+ {
+  "id": "SK-002",
+  "title": "The Last Teh Ais",
+  "location": "Dining area",
+  "cause": "A suspiciously empty glass of teh ais",
+  "text": "{PLAYER} was discovered beside an empty teh ais glass at {TIME}. The final sip remains a mystery."
+ },
+ {
+  "id": "SK-003",
+  "title": "The Wi-Fi Warrior",
+  "location": "Near the router",
+  "cause": "Lost a battle with the Wi-Fi router",
+  "text": "{PLAYER} was found near the router at {TIME} after apparently attempting to fix the Wi-Fi. The connection is still unstable."
+ },
+ {
+  "id": "SK-004",
+  "title": "The Group Chat Betrayal",
+  "location": "Living room",
+  "cause": "Read the group chat and never replied",
+  "text": "{PLAYER} was last seen reading the group chat in the living room at {TIME}. No reply was ever received."
+ },
+ {
+  "id": "SK-005",
+  "title": "The Missing Charger",
+  "location": "Bedroom",
+  "cause": "A desperate search for a phone charger",
+  "text": "{PLAYER} was discovered beside three tangled charging cables at {TIME}. None of them belonged to the phone."
+ },
+ {
+  "id": "SK-006",
+  "title": "The Maggi Mystery",
+  "location": "Kitchen",
+  "cause": "An unfinished cup of instant noodles",
+  "text": "{PLAYER} was found beside a half-finished cup of Maggi at {TIME}. The seasoning packet had been opened, but the investigation remains unsatisfied."
+ },
+ {
+  "id": "SK-007",
+  "title": "The Low Battery Tragedy",
+  "location": "Sofa",
+  "cause": "Phone battery reached 1%",
+  "text": "{PLAYER} was found on the sofa at {TIME}, moments after their phone battery reportedly reached 1%."
+ },
+ {
+  "id": "SK-008",
+  "title": "The Unread Message",
+  "location": "Hallway",
+  "cause": "A message left on read",
+  "text": "{PLAYER} was discovered in the hallway at {TIME}. Their last known activity was leaving someone on read."
+ },
+ {
+  "id": "SK-009",
+  "title": "The Remote Control Case",
+  "location": "TV area",
+  "cause": "Could not find the TV remote",
+  "text": "{PLAYER} was found beside the television at {TIME}. The remote control was later discovered under the very cushion they had checked."
+ },
+ {
+  "id": "SK-010",
+  "title": "The Cold Pizza Mystery",
+  "location": "Dining area",
+  "cause": "A forgotten slice of pizza",
+  "text": "{PLAYER} was discovered next to a cold slice of pizza at {TIME}. It had been waiting for someone who never returned."
+ },
+ {
+  "id": "SK-011",
+  "title": "The Laundry Loop",
+  "location": "Laundry area",
+  "cause": "Got trapped in an endless laundry cycle",
+  "text": "{PLAYER} was found near the laundry basket at {TIME}. Witnesses say they had been looking for a matching sock."
+ },
+ {
+  "id": "SK-012",
+  "title": "The Sock Disappearance",
+  "location": "Bedroom",
+  "cause": "One sock went missing",
+  "text": "{PLAYER} was discovered holding a single sock at {TIME}. Its partner remains unaccounted for."
+ },
+ {
+  "id": "SK-013",
+  "title": "The Wrong Door",
+  "location": "Corridor",
+  "cause": "Walked into the wrong room",
+  "text": "{PLAYER} was found in the corridor at {TIME} after confidently entering a room that was not the one they wanted."
+ },
+ {
+  "id": "SK-014",
+  "title": "The Autocorrect Affair",
+  "location": "Study area",
+  "cause": "Autocorrect changed the message",
+  "text": "{PLAYER} was discovered beside their phone at {TIME}. Investigators are examining an extremely unfortunate autocorrect suggestion."
+ },
+ {
+  "id": "SK-015",
+  "title": "The Spoiler Alert",
+  "location": "Living room",
+  "cause": "Accidentally heard a major spoiler",
+  "text": "{PLAYER} was found staring into the distance at {TIME} after an alleged television spoiler."
+ },
+ {
+  "id": "SK-016",
+  "title": "The Queue That Never Ended",
+  "location": "Entrance",
+  "cause": "Waited in an imaginary queue",
+  "text": "{PLAYER} was discovered near the entrance at {TIME}. Nobody could confirm what queue they were waiting for."
+ },
+ {
+  "id": "SK-017",
+  "title": "The Wrong Birthday",
+  "location": "Dining area",
+  "cause": "Wished the wrong person happy birthday",
+  "text": "{PLAYER} was found beside a birthday cake at {TIME}. The cake belonged to someone else."
+ },
+ {
+  "id": "SK-018",
+  "title": "The Password Problem",
+  "location": "Study area",
+  "cause": "Forgot a password they just created",
+  "text": "{PLAYER} was discovered at the desk at {TIME}, locked out of an account they had opened moments earlier."
+ },
+ {
+  "id": "SK-019",
+  "title": "The Browser Tab Incident",
+  "location": "Study area",
+  "cause": "Opened too many browser tabs",
+  "text": "{PLAYER} was found at the computer at {TIME}. The browser had 47 tabs open and no one knew why."
+ },
+ {
+  "id": "SK-020",
+  "title": "The Untied Shoelace",
+  "location": "Entrance",
+  "cause": "A shoelace remained untied",
+  "text": "{PLAYER} was discovered near the entrance at {TIME}. One shoelace was tied; the other had its own plans."
+ },
+ {
+  "id": "SK-021",
+  "title": "The Last Biscuit",
+  "location": "Kitchen",
+  "cause": "The final biscuit vanished",
+  "text": "{PLAYER} was found beside an empty biscuit tin at {TIME}. The crumbs suggest a snack-related incident."
+ },
+ {
+  "id": "SK-022",
+  "title": "The Fridge Expedition",
+  "location": "Kitchen",
+  "cause": "Opened the fridge with no plan",
+  "text": "{PLAYER} was discovered in front of the open fridge at {TIME}, apparently searching for something they could not name."
+ },
+ {
+  "id": "SK-023",
+  "title": "The Alarm Snooze",
+  "location": "Bedroom",
+  "cause": "Pressed snooze one time too many",
+  "text": "{PLAYER} was found beside an alarm clock at {TIME}. The snooze button has been taken in for questioning."
+ },
+ {
+  "id": "SK-024",
+  "title": "The Elevator Standoff",
+  "location": "Lobby",
+  "cause": "Waited for an elevator that was going up",
+  "text": "{PLAYER} was discovered in the lobby at {TIME}, still waiting for an elevator that had already passed."
+ },
+ {
+  "id": "SK-025",
+  "title": "The Typing Bubble",
+  "location": "Living room",
+  "cause": "Waited for a reply that never came",
+  "text": "{PLAYER} was found staring at their phone at {TIME}. The typing bubble disappeared without explanation."
+ },
+ {
+  "id": "SK-026",
+  "title": "The Forgotten Name",
+  "location": "Dining area",
+  "cause": "Forgot the name of someone they just met",
+  "text": "{PLAYER} was discovered at {TIME} after introducing themselves to the same person twice."
+ },
+ {
+  "id": "SK-027",
+  "title": "The Selfie Marathon",
+  "location": "Near the window",
+  "cause": "Took one selfie too many",
+  "text": "{PLAYER} was found near the window at {TIME}. The camera roll contained 86 nearly identical pictures."
+ },
+ {
+  "id": "SK-028",
+  "title": "The Unseasoned Rice",
+  "location": "Kitchen",
+  "cause": "Forgot to add seasoning",
+  "text": "{PLAYER} was discovered beside a pot of very plain rice at {TIME}. The meal had ambition but no flavour."
+ },
+ {
+  "id": "SK-029",
+  "title": "The Cup With No Water",
+  "location": "Kitchen",
+  "cause": "Went to get water and returned empty-handed",
+  "text": "{PLAYER} was found holding an empty cup at {TIME}. The original mission remains incomplete."
+ },
+ {
+  "id": "SK-030",
+  "title": "The Shopping Cart Spiral",
+  "location": "Living room",
+  "cause": "Added 23 unnecessary items to a cart",
+  "text": "{PLAYER} was discovered at {TIME} after an online shopping cart grew far beyond its original purpose."
+ },
+ {
+  "id": "SK-031",
+  "title": "The Calendar Confusion",
+  "location": "Study area",
+  "cause": "Arrived on the wrong day",
+  "text": "{PLAYER} was found checking a calendar at {TIME}. The event was tomorrow, not today."
+ },
+ {
+  "id": "SK-032",
+  "title": "The Two-Minute Nap",
+  "location": "Sofa",
+  "cause": "A two-minute nap became an event",
+  "text": "{PLAYER} was discovered asleep on the sofa at {TIME}. The promised two-minute nap had become considerably longer."
+ },
+ {
+  "id": "SK-033",
+  "title": "The Empty Tissue Box",
+  "location": "Living room",
+  "cause": "Reached for the last tissue",
+  "text": "{PLAYER} was found beside an empty tissue box at {TIME}. The replacement box was within sight but out of reach."
+ },
+ {
+  "id": "SK-034",
+  "title": "The Silent Notification",
+  "location": "Bedroom",
+  "cause": "Ignored a notification for too long",
+  "text": "{PLAYER} was discovered beside their phone at {TIME}. The notification was still there, patiently waiting."
+ },
+ {
+  "id": "SK-035",
+  "title": "The Spilled Milo",
+  "location": "Kitchen",
+  "cause": "A Milo spill caused confusion",
+  "text": "{PLAYER} was found near the kitchen counter at {TIME}. A glass of Milo had escaped its designated area."
+ },
+ {
+  "id": "SK-036",
+  "title": "The Great Pillow Search",
+  "location": "Bedroom",
+  "cause": "Could not find the cool side of the pillow",
+  "text": "{PLAYER} was discovered surrounded by pillows at {TIME}. None offered the required temperature."
+ },
+ {
+  "id": "SK-037",
+  "title": "The Unfinished Playlist",
+  "location": "Living room",
+  "cause": "Spent too long choosing a song",
+  "text": "{PLAYER} was found beside a speaker at {TIME}. The playlist had been curated, but not played."
+ },
+ {
+  "id": "SK-038",
+  "title": "The Bluetooth Betrayal",
+  "location": "Living room",
+  "cause": "Connected to the wrong speaker",
+  "text": "{PLAYER} was discovered near a speaker at {TIME}. Their private audio briefly became everyone's business."
+ },
+ {
+  "id": "SK-039",
+  "title": "The Door That Was Already Open",
+  "location": "Hallway",
+  "cause": "Tried to open an already-open door",
+  "text": "{PLAYER} was found at the doorway at {TIME}, still pushing a door that was already open."
+ },
+ {
+  "id": "SK-040",
+  "title": "The Wrong Chat",
+  "location": "Living room",
+  "cause": "Sent a message to the wrong group",
+  "text": "{PLAYER} was discovered holding their phone at {TIME}. The message had reached a very different audience."
+ },
+ {
+  "id": "SK-041",
+  "title": "The Unmuted Microphone",
+  "location": "Study area",
+  "cause": "Forgot to mute the microphone",
+  "text": "{PLAYER} was found beside a laptop at {TIME}. The meeting heard considerably more than intended."
+ },
+ {
+  "id": "SK-042",
+  "title": "The Camera Was On",
+  "location": "Study area",
+  "cause": "Forgot the camera was on",
+  "text": "{PLAYER} was discovered at {TIME} after a private reaction was accidentally broadcast to everyone."
+ },
+ {
+  "id": "SK-043",
+  "title": "The Expired Snack",
+  "location": "Kitchen",
+  "cause": "Trusted an old snack packet",
+  "text": "{PLAYER} was found beside a suspicious snack packet at {TIME}. The expiry date had been overlooked."
+ },
+ {
+  "id": "SK-044",
+  "title": "The Cupboard Search",
+  "location": "Kitchen",
+  "cause": "Looked for something in the wrong cupboard",
+  "text": "{PLAYER} was discovered in front of the cupboard at {TIME}. The missing item was in the next cupboard all along."
+ },
+ {
+  "id": "SK-045",
+  "title": "The Mystery Stain",
+  "location": "Living room",
+  "cause": "Investigated an unexplained stain",
+  "text": "{PLAYER} was found examining a mysterious stain at {TIME}. No one volunteered to identify it."
+ },
+ {
+  "id": "SK-046",
+  "title": "The One Percent Genius",
+  "location": "Study area",
+  "cause": "Started an update with 1% battery",
+  "text": "{PLAYER} was discovered beside a phone at {TIME}. A system update had begun with almost no battery remaining."
+ },
+ {
+  "id": "SK-047",
+  "title": "The Wrong Turn",
+  "location": "Corridor",
+  "cause": "Took a wrong turn indoors",
+  "text": "{PLAYER} was found in the corridor at {TIME}, despite the destination being only a few steps away."
+ },
+ {
+  "id": "SK-048",
+  "title": "The Forgotten Shopping Bag",
+  "location": "Entrance",
+  "cause": "Left the shopping bag behind",
+  "text": "{PLAYER} was discovered near the entrance at {TIME}. The shopping list was complete; the groceries were not."
+ },
+ {
+  "id": "SK-049",
+  "title": "The Spoonless Cereal",
+  "location": "Kitchen",
+  "cause": "Prepared cereal without a spoon",
+  "text": "{PLAYER} was found beside a bowl of cereal at {TIME}. The spoon had mysteriously remained in the drawer."
+ },
+ {
+  "id": "SK-050",
+  "title": "The Overthinking Order",
+  "location": "Dining area",
+  "cause": "Could not decide what to order",
+  "text": "{PLAYER} was discovered staring at a menu at {TIME}. The restaurant had closed before a decision was made."
+ },
+ {
+  "id": "SK-051",
+  "title": "The Last Slice Debate",
+  "location": "Dining area",
+  "cause": "Started a debate over the last slice",
+  "text": "{PLAYER} was found beside an empty plate at {TIME}. The last slice had become a matter of national importance."
+ },
+ {
+  "id": "SK-052",
+  "title": "The Unclaimed Umbrella",
+  "location": "Entrance",
+  "cause": "Took the wrong umbrella",
+  "text": "{PLAYER} was discovered holding an unfamiliar umbrella at {TIME}. Its owner is still looking for it."
+ },
+ {
+  "id": "SK-053",
+  "title": "The Fan Remote Mystery",
+  "location": "Bedroom",
+  "cause": "Could not locate the fan remote",
+  "text": "{PLAYER} was found beside a fan at {TIME}. The remote was later spotted in plain sight."
+ },
+ {
+  "id": "SK-054",
+  "title": "The Frozen Screen",
+  "location": "Study area",
+  "cause": "A device stopped responding",
+  "text": "{PLAYER} was discovered staring at a frozen screen at {TIME}. Repeated tapping had achieved nothing."
+ },
+ {
+  "id": "SK-055",
+  "title": "The Accidental Voice Note",
+  "location": "Living room",
+  "cause": "Sent a voice note by accident",
+  "text": "{PLAYER} was found beside their phone at {TIME}. A recording of background noise had been sent to the group."
+ },
+ {
+  "id": "SK-056",
+  "title": "The Wrong Shoe",
+  "location": "Entrance",
+  "cause": "Put on two different shoes",
+  "text": "{PLAYER} was discovered near the entrance at {TIME}. Fashion experts have declined to comment."
+ },
+ {
+  "id": "SK-057",
+  "title": "The Mystery of the Missing Pen",
+  "location": "Study area",
+  "cause": "Searched for a pen while holding one",
+  "text": "{PLAYER} was found at the desk at {TIME}. The missing pen was in their hand."
+ },
+ {
+  "id": "SK-058",
+  "title": "The Endless Loading Screen",
+  "location": "Study area",
+  "cause": "Waited for a loading screen",
+  "text": "{PLAYER} was discovered at {TIME}, still waiting for a loading circle to finish its journey."
+ },
+ {
+  "id": "SK-059",
+  "title": "The Too-Hot Tea",
+  "location": "Kitchen",
+  "cause": "Took a sip before the tea cooled",
+  "text": "{PLAYER} was found beside a cup of tea at {TIME}. The tea was still too hot, as predicted."
+ },
+ {
+  "id": "SK-060",
+  "title": "The Ice Cube Incident",
+  "location": "Kitchen",
+  "cause": "Ran out of ice cubes",
+  "text": "{PLAYER} was discovered beside an empty ice tray at {TIME}. Refreshment plans were suspended."
+ },
+ {
+  "id": "SK-061",
+  "title": "The Wrong Volume",
+  "location": "Living room",
+  "cause": "Turned the volume up instead of down",
+  "text": "{PLAYER} was found near the television at {TIME}. The entire room now knows the soundtrack."
+ },
+ {
+  "id": "SK-062",
+  "title": "The Forgotten PIN",
+  "location": "Entrance",
+  "cause": "Forgot the door PIN",
+  "text": "{PLAYER} was discovered at the entrance at {TIME}, trying every number except the correct one."
+ },
+ {
+  "id": "SK-063",
+  "title": "The Shopping List Ghost",
+  "location": "Kitchen",
+  "cause": "Forgot the only item on the list",
+  "text": "{PLAYER} was found holding a shopping list at {TIME}. The one required item was missing."
+ },
+ {
+  "id": "SK-064",
+  "title": "The Double Booking",
+  "location": "Study area",
+  "cause": "Booked two things at the same time",
+  "text": "{PLAYER} was discovered checking their calendar at {TIME}. Time management has requested an investigation."
+ },
+ {
+  "id": "SK-065",
+  "title": "The Wrong Name Tag",
+  "location": "Living room",
+  "cause": "Wore someone else's name tag",
+  "text": "{PLAYER} was found at {TIME} introducing themselves with a name that was not theirs."
+ },
+ {
+  "id": "SK-066",
+  "title": "The Mystery of the Extra Chair",
+  "location": "Dining area",
+  "cause": "Reserved a seat for nobody",
+  "text": "{PLAYER} was discovered beside an empty chair at {TIME}. Its imaginary guest never arrived."
+ },
+ {
+  "id": "SK-067",
+  "title": "The Suspicious Crumb Trail",
+  "location": "Kitchen",
+  "cause": "Followed a trail of crumbs",
+  "text": "{PLAYER} was found at the end of a crumb trail at {TIME}. The trail led to an empty snack packet."
+ },
+ {
+  "id": "SK-068",
+  "title": "The Paper Jam",
+  "location": "Study area",
+  "cause": "Tried to negotiate with a printer",
+  "text": "{PLAYER} was discovered beside a printer at {TIME}. The printer had jammed and refused to cooperate."
+ },
+ {
+  "id": "SK-069",
+  "title": "The Unsent Email",
+  "location": "Study area",
+  "cause": "Forgot to send the email",
+  "text": "{PLAYER} was found at the desk at {TIME}. The email was perfectly written and still sitting in drafts."
+ },
+ {
+  "id": "SK-070",
+  "title": "The Wrong Direction",
+  "location": "Entrance",
+  "cause": "Walked confidently in the opposite direction",
+  "text": "{PLAYER} was discovered at {TIME} after confidently heading away from the destination."
+ },
+ {
+  "id": "SK-071",
+  "title": "The Missing Left Earbud",
+  "location": "Bedroom",
+  "cause": "Could only find one earbud",
+  "text": "{PLAYER} was found searching the bedroom at {TIME}. The left earbud remains missing."
+ },
+ {
+  "id": "SK-072",
+  "title": "The Endless Group Photo",
+  "location": "Living room",
+  "cause": "Could not get everyone to look at the camera",
+  "text": "{PLAYER} was discovered holding a phone at {TIME}. In every photo, someone was blinking."
+ },
+ {
+  "id": "SK-073",
+  "title": "The Unstable Stack",
+  "location": "Dining area",
+  "cause": "Built an ambitious tower of cups",
+  "text": "{PLAYER} was found beside a fallen stack of cups at {TIME}. Gravity has claimed responsibility."
+ },
+ {
+  "id": "SK-074",
+  "title": "The Forgotten Password Hint",
+  "location": "Study area",
+  "cause": "Forgot the hint to the password",
+  "text": "{PLAYER} was discovered at the computer at {TIME}. Even the password hint made no sense."
+ },
+ {
+  "id": "SK-075",
+  "title": "The Mystery of the Wet Floor",
+  "location": "Kitchen",
+  "cause": "Investigated a wet floor with socks on",
+  "text": "{PLAYER} was found near the kitchen at {TIME}. Their socks were not prepared for the investigation."
+ },
+ {
+  "id": "SK-076",
+  "title": "The Premature Goodbye",
+  "location": "Entrance",
+  "cause": "Said goodbye and then kept talking",
+  "text": "{PLAYER} was discovered near the entrance at {TIME}. The goodbye had lasted another fifteen minutes."
+ },
+ {
+  "id": "SK-077",
+  "title": "The Last-minute Outfit",
+  "location": "Bedroom",
+  "cause": "Changed outfits five times",
+  "text": "{PLAYER} was found surrounded by clothes at {TIME}. The original outfit was eventually chosen."
+ },
+ {
+  "id": "SK-078",
+  "title": "The Wrong Meeting Link",
+  "location": "Study area",
+  "cause": "Joined the wrong online meeting",
+  "text": "{PLAYER} was discovered at {TIME} in a meeting about a topic nobody recognised."
+ },
+ {
+  "id": "SK-079",
+  "title": "The Suspiciously Quiet Phone",
+  "location": "Sofa",
+  "cause": "Could not find a phone on silent mode",
+  "text": "{PLAYER} was found searching the sofa at {TIME}. Their phone was ringing silently somewhere nearby."
+ },
+ {
+  "id": "SK-080",
+  "title": "The Forgotten Password Reset",
+  "location": "Study area",
+  "cause": "Reset a password and forgot the new one",
+  "text": "{PLAYER} was discovered at the desk at {TIME}. The new password had already been forgotten."
+ },
+ {
+  "id": "SK-081",
+  "title": "The Unopened Parcel",
+  "location": "Entrance",
+  "cause": "Forgot to open a delivered parcel",
+  "text": "{PLAYER} was found beside an unopened parcel at {TIME}. The delivery had arrived three days earlier."
+ },
+ {
+  "id": "SK-082",
+  "title": "The Mystery of the Duplicate Tab",
+  "location": "Study area",
+  "cause": "Opened the same page twelve times",
+  "text": "{PLAYER} was discovered at the computer at {TIME}. Twelve identical tabs were found open."
+ },
+ {
+  "id": "SK-083",
+  "title": "The Unfinished Puzzle",
+  "location": "Living room",
+  "cause": "Lost one puzzle piece",
+  "text": "{PLAYER} was found beside an unfinished puzzle at {TIME}. One piece is still missing under mysterious circumstances."
+ },
+ {
+  "id": "SK-084",
+  "title": "The Overfilled Cup",
+  "location": "Kitchen",
+  "cause": "Poured one drop too many",
+  "text": "{PLAYER} was discovered beside an overflowing cup at {TIME}. The counter has filed a complaint."
+ },
+ {
+  "id": "SK-085",
+  "title": "The Forgotten Fan",
+  "location": "Bedroom",
+  "cause": "Looked for the fan while standing beside it",
+  "text": "{PLAYER} was found at {TIME}, searching for the fan that was already spinning above them."
+ },
+ {
+  "id": "SK-086",
+  "title": "The Wrong Side of the Bed",
+  "location": "Bedroom",
+  "cause": "Got out of bed on the wrong side",
+  "text": "{PLAYER} was discovered at {TIME} after a morning that started suspiciously badly."
+ },
+ {
+  "id": "SK-087",
+  "title": "The Mute Button Mystery",
+  "location": "Living room",
+  "cause": "Talked while muted for five minutes",
+  "text": "{PLAYER} was found beside a laptop at {TIME}. Their passionate speech had been completely silent."
+ },
+ {
+  "id": "SK-088",
+  "title": "The Uncharged Power Bank",
+  "location": "Living room",
+  "cause": "Brought an uncharged power bank",
+  "text": "{PLAYER} was discovered holding a power bank at {TIME}. It had less battery than the phone it was meant to save."
+ },
+ {
+  "id": "SK-089",
+  "title": "The Last-minute Screenshot",
+  "location": "Living room",
+  "cause": "Forgot to take the screenshot",
+  "text": "{PLAYER} was found at {TIME} after the important screen had already disappeared."
+ },
+ {
+  "id": "SK-090",
+  "title": "The Mystery of the Extra Sauce",
+  "location": "Dining area",
+  "cause": "Ordered extra sauce and forgot it",
+  "text": "{PLAYER} was discovered beside a meal at {TIME}. The extra sauce remained untouched in its packet."
+ },
+ {
+  "id": "SK-091",
+  "title": "The Unnecessary Detour",
+  "location": "Hallway",
+  "cause": "Took a long route to avoid one person",
+  "text": "{PLAYER} was found in the hallway at {TIME}. The detour was longer than the conversation would have been."
+ },
+ {
+  "id": "SK-092",
+  "title": "The Forgotten Water Bottle",
+  "location": "Living room",
+  "cause": "Left the water bottle in another room",
+  "text": "{PLAYER} was discovered at {TIME} after completing several trips without bringing the bottle back."
+ },
+ {
+  "id": "SK-093",
+  "title": "The Great Chair Adjustment",
+  "location": "Study area",
+  "cause": "Spent too long adjusting a chair",
+  "text": "{PLAYER} was found beside a chair at {TIME}. It was still not at the perfect height."
+ },
+ {
+  "id": "SK-094",
+  "title": "The Mystery of the Missing Bookmark",
+  "location": "Bedroom",
+  "cause": "Lost their place in a book",
+  "text": "{PLAYER} was discovered holding an open book at {TIME}. The bookmark had vanished between two pages."
+ },
+ {
+  "id": "SK-095",
+  "title": "The Unfinished Voice Search",
+  "location": "Living room",
+  "cause": "Asked a voice assistant an incomplete question",
+  "text": "{PLAYER} was found near a smart speaker at {TIME}. The assistant is still waiting for the rest of the question."
+ },
+ {
+  "id": "SK-096",
+  "title": "The Wrong Delivery",
+  "location": "Entrance",
+  "cause": "Accepted someone else's delivery",
+  "text": "{PLAYER} was discovered beside a parcel at {TIME}. The name on the label belonged to a neighbour."
+ },
+ {
+  "id": "SK-097",
+  "title": "The Suspiciously Long Shower",
+  "location": "Bathroom",
+  "cause": "Forgot how long they had been showering",
+  "text": "{PLAYER} was discovered outside the bathroom at {TIME}. The hot water supply has declined to comment."
+ },
+ {
+  "id": "SK-098",
+  "title": "The Last Tissue Negotiation",
+  "location": "Bedroom",
+  "cause": "Tried to use the cardboard tissue roll",
+  "text": "{PLAYER} was found beside an empty tissue box at {TIME}. The cardboard tube offered no assistance."
+ },
+ {
+  "id": "SK-099",
+  "title": "The Unfinished To-do List",
+  "location": "Study area",
+  "cause": "Added more tasks than they completed",
+  "text": "{PLAYER} was discovered beside a to-do list at {TIME}. The list had somehow grown longer."
+ },
+ {
+  "id": "SK-100",
+  "title": "The Great Snack Detour",
+  "location": "Kitchen",
+  "cause": "Went for one snack and returned with five",
+  "text": "{PLAYER} was found in the kitchen at {TIME}, surrounded by snacks unrelated to the original mission."
+ },
+ {
+  "id": "SK-101",
+  "title": "The Mystery of the Open Window",
+  "location": "Living room",
+  "cause": "Looked for a breeze beside an open window",
+  "text": "{PLAYER} was discovered near the window at {TIME}. The breeze had been there all along."
+ },
+ {
+  "id": "SK-102",
+  "title": "The Forgotten Laundry",
+  "location": "Laundry area",
+  "cause": "Left clothes in the washing machine",
+  "text": "{PLAYER} was found beside the washing machine at {TIME}. The laundry cycle had finished hours ago."
+ },
+ {
+  "id": "SK-103",
+  "title": "The Accidental Caps Lock",
+  "location": "Study area",
+  "cause": "Sent an entire message in capital letters",
+  "text": "{PLAYER} was discovered at the desk at {TIME}. Their message appeared to be shouting."
+ },
+ {
+  "id": "SK-104",
+  "title": "The Wrong Calendar Month",
+  "location": "Study area",
+  "cause": "Checked the wrong month",
+  "text": "{PLAYER} was found staring at a calendar at {TIME}. The date was correct; the month was not."
+ },
+ {
+  "id": "SK-105",
+  "title": "The Mystery of the Empty Wallet",
+  "location": "Living room",
+  "cause": "Searched for a wallet that was in a pocket",
+  "text": "{PLAYER} was discovered at {TIME} after checking every surface except their own pocket."
+ },
+ {
+  "id": "SK-106",
+  "title": "The Unfinished Cup of Coffee",
+  "location": "Study area",
+  "cause": "Forgot about a cup of coffee",
+  "text": "{PLAYER} was found beside a cold cup of coffee at {TIME}. It had been reheated twice and abandoned again."
+ },
+ {
+  "id": "SK-107",
+  "title": "The Great Blanket Dispute",
+  "location": "Sofa",
+  "cause": "Lost control of the blanket",
+  "text": "{PLAYER} was discovered on the sofa at {TIME}. The blanket had been pulled into another dimension."
+ },
+ {
+  "id": "SK-108",
+  "title": "The Suspiciously Specific Excuse",
+  "location": "Living room",
+  "cause": "Ran out of believable excuses",
+  "text": "{PLAYER} was found at {TIME} after offering an explanation involving a very specific pigeon."
+ },
+ {
+  "id": "SK-109",
+  "title": "The Final Notification",
+  "location": "Bedroom",
+  "cause": "Checked one notification and lost an hour",
+  "text": "{PLAYER} was discovered scrolling at {TIME}. The original notification had long been forgotten."
+ },
+ {
+  "id": "SK-110",
+  "title": "The Unclaimed Leftovers",
+  "location": "Kitchen",
+  "cause": "Could not identify yesterday's leftovers",
+  "text": "{PLAYER} was found examining a container at {TIME}. The contents remain classified."
+ },
+ {
+  "id": "SK-111",
+  "title": "The Great Shoe Rack Mix-up",
+  "location": "Entrance",
+  "cause": "Put shoes on the wrong rack",
+  "text": "{PLAYER} was discovered at the entrance at {TIME}. The shoe rack has requested clearer labels."
+ },
+ {
+  "id": "SK-112",
+  "title": "The Suspiciously Long Goodbye",
+  "location": "Entrance",
+  "cause": "Said goodbye from the doorway for too long",
+  "text": "{PLAYER} was found still standing at the doorway at {TIME}. The conversation had entered its fourth closing statement."
+ }
+]

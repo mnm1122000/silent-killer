@@ -1,0 +1,1 @@
+{ "name": "silent-killer", "private": true, "type": "module", "scripts": { "test": "node tools/test-engine.js", "sfx": "node tools/gen-sfx.cjs" } }
