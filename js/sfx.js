@@ -5,7 +5,7 @@
 
 const NAMES = ['click', 'tick', 'tick_urgent', 'heartbeat', 'thunder', 'sting_action', 'wink', 'role_reveal', 'report', 'submit',
   'scan', 'death', 'no_death', 'discussion', 'warning', 'accuse', 'curse', 'win_innocent', 'win_killer', 'join', 'start_game',
-  'ambience', 'lobby', 'tension'];
+  'ambience', 'lobby', 'tension', 'shh'];
 
 class Sfx {
   constructor() {
@@ -14,10 +14,26 @@ class Sfx {
     try { this.muted = localStorage.getItem('sk_muted') === '1'; } catch (_) {}
   }
 
-  async unlock() {
+  // Must be called from inside a tap/click handler. Everything before the first
+  // await runs synchronously inside the gesture, which iOS and Android require.
+  unlock() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return Promise.resolve();
+    // iPhone: the ring/silent switch mutes Web Audio unless the page is a "playback" app.
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) {}
+    if (!this.mediaEl) {
+      // Classic iOS workaround: a looping silent <audio> element moves the page into the media
+      // audio session, so sounds play even with the silent switch on.
+      const a = document.createElement('audio');
+      a.src = 'assets/sfx/silence.mp3';
+      a.loop = true; a.preload = 'auto';
+      a.setAttribute('playsinline', ''); a.setAttribute('webkit-playsinline', '');
+      a.setAttribute('x-webkit-airplay', 'deny');
+      document.body.appendChild(a);
+      this.mediaEl = a;
+    }
+    if (this.mediaEl.paused) { const pr = this.mediaEl.play(); if (pr && pr.catch) pr.catch(() => {}); }
     if (!this.ctx) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
       this.ctx = new AC();
       this.master = this.ctx.createGain();
       this.master.gain.value = this.muted ? 0 : 1;
@@ -27,17 +43,30 @@ class Sfx {
       this.musicBus.connect(this.master);
       this.loadAll();
     }
-    if (this.ctx.state !== 'running') { try { await this.ctx.resume(); } catch (_) {} }
+    // Start a silent 1-sample buffer inside the gesture (old iOS unlock trick).
+    try {
+      const b = this.ctx.createBuffer(1, 1, 22050);
+      const src = this.ctx.createBufferSource();
+      src.buffer = b; src.connect(this.ctx.destination); src.start(0);
+    } catch (_) {}
+    if (this.ctx.state !== 'running') {
+      const pr = this.ctx.resume();
+      return pr && pr.catch ? pr.catch(() => {}) : Promise.resolve();
+    }
+    return Promise.resolve();
   }
 
+  get ready() { return !!this.ctx && this.ctx.state === 'running'; }
+
   loadAll() {
-    this.loading = Promise.all(NAMES.map(async (n) => {
+    this.pending = {};
+    this.loading = Promise.all(NAMES.map((n) => (this.pending[n] = (async () => {
       try {
         const res = await fetch(`assets/sfx/${n}.mp3`);
         const arr = await res.arrayBuffer();
         this.buffers[n] = await new Promise((ok, bad) => this.ctx.decodeAudioData(arr, ok, bad));
       } catch (_) { /* missing sound is never fatal */ }
-    }));
+    })())));
     return this.loading;
   }
 
@@ -47,8 +76,16 @@ class Sfx {
     if (this.master) this.master.gain.setTargetAtTime(m ? 0 : 1, this.ctx.currentTime, 0.05);
   }
 
-  play(name, { vol = 1, rate = 1, delay = 0 } = {}) {
-    if (!this.ctx || !this.buffers[name]) return;
+  play(name, opts = {}) {
+    if (!this.ctx) return;
+    if (!this.buffers[name]) {
+      // not decoded yet: play it as soon as it is, unless that is too late to make sense
+      const asked = Date.now();
+      if (this.pending && this.pending[name]) this.pending[name].then(() => { if (this.buffers[name] && Date.now() - asked < 2500) this.play(name, opts); });
+      return;
+    }
+    const { vol = 1, rate = 1, delay = 0 } = opts;
+    if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {});
     const src = this.ctx.createBufferSource();
     src.buffer = this.buffers[name];
     src.playbackRate.value = rate;

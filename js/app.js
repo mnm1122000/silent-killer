@@ -3,6 +3,7 @@ import { Game, ROLE, MODES, MIN_PLAYERS, MAX_PLAYERS, roleCounts, maxKillers, CU
 import * as net from './net.js';
 import { sfx, vibrate } from './sfx.js';
 import { fx } from './fx.js';
+import { afterlife } from './afterlife.js';
 
 // ======================================================================
 // utils
@@ -147,6 +148,21 @@ function onAvatar(data, id) {
 let wakeLock = null;
 async function keepAwake() {
   try { if ('wakeLock' in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } } catch (_) {}
+}
+// Phones only allow audio after a real tap. Re-unlock on every tap until it is running
+// (iOS also suspends audio when the screen locks or the app goes to the background).
+for (const ev of ['touchend', 'click', 'keydown']) {
+  document.addEventListener(ev, () => { if (!sfx.ready || (sfx.mediaEl && sfx.mediaEl.paused)) sfx.unlock(); }, true);
+}
+function testSound() {
+  sfx.unlock();
+  if (sfx.muted) sfx.setMuted(false);
+  sfx.play('death', { vol: 1 });
+  setTimeout(() => {
+    if (!sfx.ready) toast('Sound is still blocked — tap the screen once more.', 4000);
+    else toast('🔊 Hear that? If not: turn off Silent mode, raise the media volume, and check no Bluetooth device is connected.', 6000);
+  }, 600);
+  render();
 }
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
@@ -420,6 +436,7 @@ async function onClientDn(data) {
 function teardown() {
   clearInterval(App.loop); clearInterval(App.beat);
   if (App.bus) App.bus.close();
+  App.ghostSub = false;
   Object.assign(App, { mode: null, bus: null, game: null, view: null, viewKey: '', code: null, me: null, hostKey: null, phaseKey: '', lastSent: {}, keyP: {}, pubs: {}, seen: {} });
   sfx.stopAll();
   sfx.loop('lobby');
@@ -469,7 +486,7 @@ function onPhase(v, prev, first) {
   const ui = App.ui;
   ui.sel = null; ui.reportYes = false; ui.suspect = null; ui.shown = 0;
   if (v.phase !== 'reveal') ui.peeked = false;
-  if (v.phase === 'lobby') { ui.notes = {}; }
+  if (v.phase === 'lobby') { ui.notes = {}; afterlife.reset(); }
   if (v.gameNo && store.get('notes_game') !== `${v.code}:${v.gameNo}`) { store.set('notes_game', `${v.code}:${v.gameNo}`); ui.notes = {}; store.set('notes', {}); }
   else ui.notes = store.get('notes', {});
   sfx.stop('hb', 0.5);
@@ -486,6 +503,7 @@ function onPhase(v, prev, first) {
     case 'action':
       fx.lightning(); fx.setTint([150, 8, 18]);
       sfx.play('sting_action');
+      sfx.play('shh', { delay: 1.6, vol: 0.9 });
       sfx.loop('tension', { vol: 0.9 });
       break;
     case 'report':
@@ -567,6 +585,7 @@ function render() {
   el.innerHTML = fn();
   paintAvatars();
   if (App.screen === 'game' && App.view && App.view.phase === 'lobby') drawQR();
+  mountAfterlife();
 }
 
 function rSplash() {
@@ -575,7 +594,7 @@ function rSplash() {
     <div class="logo"><span class="flick">SILENT</span><span>KILLER</span></div>
     <div class="tagline">One wink. One death. One detective.<br>Who can you trust?</div>
     <button class="btn primary big block" data-act="enter">Enter… if you dare</button>
-    <div class="small">Turn your sound on. Best played in a room full of liars.</div>
+    <div class="small">Turn your sound on (and Silent mode off). Best played in a room full of liars.</div>
   </div>`;
 }
 
@@ -593,6 +612,7 @@ function rHome() {
       <button class="btn ${fresh(host) || (fresh(last) && !last.host) ? '' : 'primary'} big block" data-act="create">🕯️ Create a lobby</button>
       <button class="btn big block" data-act="goJoin">🚪 Join a lobby</button>
       <button class="btn ghost block" data-act="rules">📜 How to play</button>
+      <button class="btn ghost block" data-act="testSound">🔊 Test sound</button>
     </div>
     <div class="foot">5–20 players · everyone in the same room · one phone each</div>
   </div>`;
@@ -685,7 +705,7 @@ function rLobby(v) {
   const min = v.settings.minPlayers;
   const link = inviteLink();
   return `<div class="drip"></div>
-  <div class="row"><div class="spacer"></div><button class="icon-btn" data-act="mute">${sfx.muted ? '🔇' : '🔊'}</button><button class="icon-btn" data-act="rules">📜</button></div>
+  <div class="row"><button class="btn sm ghost" data-act="testSound">🔊 Test sound</button><div class="spacer"></div><button class="icon-btn" data-act="mute">${sfx.muted ? '🔇' : '🔊'}</button><button class="icon-btn" data-act="rules">📜</button></div>
   <div class="logo" style="font-size:34px"><span class="flick">SILENT KILLER</span></div>
   <div class="card blood code-box">
     <div class="label">Lobby code</div>
@@ -794,6 +814,30 @@ function rReveal(v) {
     <div class="small center">You can peek at your role again any time with the 👁️ button.</div>`;
 }
 
+function afterlifeCard() {
+  return `<div class="card afterlife"><div class="row"><h3 style="margin:0">👻 The Afterlife</h3><div class="spacer"></div><span class="small" id="hauntCount"></span></div>
+    <div id="afterlife" class="afterlife-box"></div>
+    <div class="small">Drag your ghost and touch the living to haunt them. Only the dead can see this — the living feel nothing.</div></div>`;
+}
+
+function mountAfterlife() {
+  const box = document.getElementById('afterlife');
+  const v = App.view;
+  if (!box || !v) return;
+  afterlife.update({
+    name: v.me.name,
+    living: v.players.filter((p) => p.alive),
+    dead: v.players.filter((p) => !p.alive && p.id !== v.me.id),
+  });
+  afterlife.onMove = (x, y) => App.bus && App.bus.publish('gh/' + App.me, { x, y }, { qos: 0 });
+  afterlife.onHaunt = () => vibrate(12);
+  if (!App.ghostSub && App.bus) {
+    App.ghostSub = true;
+    App.bus.subscribe('gh/+', (d, id) => { if (d && id !== App.me && App.view && !App.view.me.alive) afterlife.remote(id, d.x, d.y); });
+  }
+  afterlife.attach(box);
+}
+
 function deadBox(v) {
   return `<div class="dead-box"><div class="d-t">You are dead</div>
     <div class="type">${v.me.cause === 'curse' ? 'The curse consumed you.' : 'Someone winked. You fell.'}</div>
@@ -813,24 +857,28 @@ function grid(list, { selected = [], disabled = () => false, marks = true, act =
 
 function rAction(v) {
   const me = v.me;
-  if (!me.alive) return deadBox(v) + rRoster(v);
+  if (!me.alive) return deadBox(v) + afterlifeCard() + rRoster(v);
   const others = v.players.filter((p) => p.id !== me.id && p.alive);
   if (me.role === ROLE.KILLER) {
     if (me.target) {
       // Deliberately looks like everyone else's screen so nobody can spot the Killer's phone from afar.
       const t = P(me.target);
-      return `<div class="card"><h3>Mark your suspects</h3><div class="small" style="margin-bottom:10px">🔒 Locked: <b>${esc(t.name)}</b> — now wink at them. Failed rounds: ${me.failed}/${me.curseLimit}</div>
+      return `${silenceBanner()}<div class="card"><h3>Mark your suspects</h3><div class="small" style="margin-bottom:10px">🔒 Locked: <b>${esc(t.name)}</b> — now wink at them. Failed rounds: ${me.failed}/${me.curseLimit}</div>
         ${grid(others, { marks: true })}</div>
-        <div class="card type center" style="font-size:14px">Mingle. Talk. Watch the eyes.<br>Wink at <b>${esc(t.name)}</b> — don't get caught.</div>`;
+        <div class="card type center" style="font-size:14px">Wink at <b>${esc(t.name)}</b> — don't get caught.<br>After the timer you must confirm whether you really winked.</div>`;
     }
-    return `<div class="card"><h3>Choose your target</h3><div class="small" style="margin-bottom:10px">Tap a face, then lock it. One target per round — you can't change it.</div>
+    return `${silenceBanner()}<div class="card"><h3>Choose your target</h3><div class="small" style="margin-bottom:10px">Tap a face, then lock it. One target per round — you can't change it.</div>
       ${grid(others, { selected: [App.ui.sel], disabled: (p) => p.role === ROLE.KILLER, marks: true })}</div>
       <button class="btn primary big block" data-act="lock" ${App.ui.sel ? '' : 'disabled'}>${App.ui.sel ? `Lock ${esc(P(App.ui.sel)?.name || '')}` : 'Select a target'}</button>
       <div class="small center">Failed rounds in a row: ${me.failed}/${me.curseLimit}${me.failed >= me.curseLimit - 1 ? ' — <b style="color:var(--blood-hi)">the curse is near</b>' : ''}</div>`;
   }
-  return `<div class="card"><h3>Mark your suspects</h3><div class="small" style="margin-bottom:10px">Tap faces to note them: ? suspicious · ✓ trusted. Private to you.</div>
+  return `${silenceBanner()}<div class="card"><h3>Mark your suspects</h3><div class="small" style="margin-bottom:10px">Tap faces to note them: ? suspicious · ✓ trusted. Private to you.</div>
     ${grid(others, { marks: true })}</div>
-    <div class="card type center" style="font-size:14px">Mingle. Talk. Watch the eyes.<br>If someone winks at you, <b>remember who</b> — you'll report when the timer ends.</div>`;
+    <div class="card type center" style="font-size:14px">If someone winks at you: <b>stay silent</b>, don't react, don't accuse out loud.<br>Remember who — you'll report it when the timer ends.</div>`;
+}
+
+function silenceBanner() {
+  return `<div class="silence"><span class="sh">🤫</span><div><b>SILENCE.</b> Mingle and make eye contact — <b>no talking</b> until the Discussion Phase.</div></div>`;
 }
 
 function rReport(v) {
@@ -839,7 +887,22 @@ function rReport(v) {
   const progress = `<div class="card"><div class="label">Reports sealed: ${rp.done}/${rp.total}</div>
     <div style="height:8px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden"><div style="height:100%;width:${rp.total ? (rp.done / rp.total) * 100 : 0}%;background:var(--blood-hi)"></div></div>
     ${rp.pending.length ? `<div class="pending-names" style="margin-top:8px">Waiting for: ${rp.pending.map((id) => esc(P(id)?.name)).join(', ')}</div>` : ''}</div>`;
-  if (!me.alive) return deadBox(v) + progress;
+  if (!me.alive) return deadBox(v) + afterlifeCard() + progress;
+  const confirming = me.role === ROLE.KILLER && me.target;
+  if (me.myReport && confirming) {
+    return `<div class="card center"><div class="horror" style="font-size:28px">Report sealed</div>
+      <p class="type">${me.myReport.confirm ? `You confirmed you winked at <b>${esc(P(me.target)?.name)}</b>.` : 'You said you did not manage to wink this round.'}</p>
+      <div class="small">Reports are private and cannot be changed.</div></div>${progress}`;
+  }
+  if (confirming) {
+    const nm = esc(P(me.target)?.name);
+    return `<div class="bigq">Did you wink at<br>${nm}?</div>
+      <div class="yesno">
+        <button class="btn" data-act="confirmYes" ${App.ui.busy ? 'disabled' : ''}><span class="ic">😉</span>YES,<br>I winked at ${nm}</button>
+        <button class="btn" data-act="confirmNo" ${App.ui.busy ? 'disabled' : ''}><span class="ic">😐</span>NO,<br>I didn't wink</button>
+      </div>
+      <div class="small center">Only YES kills. A NO counts as a failed round (${me.failed}/${me.curseLimit}).</div>${progress}`;
+  }
   if (me.myReport) {
     return `<div class="card center"><div class="horror" style="font-size:28px">Report sealed</div>
       <p class="type">${me.myReport.winked ? `You reported a wink from <b>${esc(P(me.myReport.suspect)?.name)}</b>.` : 'You reported that nobody winked at you.'}</p>
@@ -886,18 +949,18 @@ function rAnnounce(v) {
   const a = v.announcement || { items: [] };
   const warn = v.me.warnedThisRound ? `<div class="warning-box">⚠️ <b>Private notice:</b> your report did not match the crime records. A warning has been logged (${v.me.warnings} total).</div>` : '';
   if (!a.items.length) {
-    return `<div class="quiet card"><div class="q-ic">🕯️</div><div class="horror" style="font-size:32px">No bodies found</div><p class="type">The night passes quietly… this time.</p></div>${warn}`;
+    return `${!v.me.alive ? afterlifeCard() : ''}<div class="quiet card"><div class="q-ic">🕯️</div><div class="horror" style="font-size:32px">No bodies found</div><p class="type">The night passes quietly… this time.</p></div>${warn}`;
   }
   const shown = a.items.slice(0, App.ui.shown);
   const iDied = a.items.some((it) => it.pid === v.me.id);
   return `${shown.length ? '' : '<div class="scan" style="height:120px"><div class="scan-txt">A body has been found…</div></div>'}
     ${shown.slice().reverse().map((it) => crimeCard({ ...it, round: a.round }, v)).join('')}
-    ${iDied && shown.some((it) => it.pid === v.me.id) ? deadBox(v) : ''}${warn}`;
+    ${iDied && shown.some((it) => it.pid === v.me.id) ? deadBox(v) : ''}${!v.me.alive && !iDied ? afterlifeCard() : ''}${warn}`;
 }
 
 function rDiscussion(v) {
   const deaths = (v.announcement && v.announcement.items) || [];
-  return `${!v.me.alive ? deadBox(v) : `<div class="card center type">Discuss what you saw. Share suspicions.<br><b>The dead may not speak.</b></div>`}
+  return `${!v.me.alive ? deadBox(v) + afterlifeCard() : `<div class="card center type">🗣️ <b>Now you may talk.</b> Share what you saw and who you suspect.<br><b>The dead may not speak.</b></div>`}
     ${v.me.warnedThisRound ? `<div class="warning-box">⚠️ Your last report was flagged. Warnings: ${v.me.warnings}</div>` : ''}
     ${deaths.length ? `<div class="card"><h3>This round</h3>${deaths.map((it) => `<div class="prow">${av(it.pid, P(it.pid)?.name, 'dead')}<div class="stack"><span class="name">${esc(P(it.pid)?.name)}</span><span class="small">${it.kind === 'curse' ? 'Cursed Killer' : esc(it.title)}</span></div></div>`).join('')}</div>` : ''}
     ${rRoster(v)}
@@ -937,7 +1000,7 @@ function rOver(v) {
       const kn = esc(P(k)?.name);
       if (!kr.target) return `🔪 ${kn} chose no target`;
       const tp = P(kr.target);
-      const how = h.deaths.includes(kr.target) ? '→ <b style="color:var(--blood-hi)">killed</b>' : tp && tp.role === ROLE.POLICE ? '→ Police is immune' : '→ survived';
+      const how = !kr.confirmed ? '→ never confirmed a wink (no kill)' : h.deaths.includes(kr.target) ? '→ winked → <b style="color:var(--blood-hi)">killed</b>' : tp && tp.role === ROLE.POLICE ? '→ winked, but the Police is immune' : '→ survived';
       return `🔪 ${kn} targeted ${esc(tp?.name)} ${how}`;
     });
     h.curses.forEach((c) => lines.push(`☠️ ${esc(P(c)?.name)} was consumed by the curse`));
@@ -974,17 +1037,18 @@ function rulesHTML() {
   return `<div class="title">How to play</div><div class="rules">
   <h4>The idea</h4><p>Everyone is in the same room with their own phone. One (or more) of you is a <b>Killer</b> who kills by <b>winking</b>. One of you is the <b>Police</b>. Everyone else is a <b>Netizen</b>.</p>
   <h4>Each round</h4><ul>
-    <li><b>Action:</b> mingle and talk. The Killer secretly locks ONE target on their phone, then winks at that person.</li>
-    <li><b>Report:</b> everyone answers "Were you winked at?" — and if yes, names who did it.</li>
+    <li><b>Action — in silence:</b> mingle and make eye contact, but <b>no talking</b>. The Killer secretly locks ONE target on their phone, then winks at that person. If you get winked at, stay silent and don't react — remember who it was.</li>
+    <li><b>Report:</b> everyone answers "Were you winked at?" — and if yes, names who did it. A Killer who locked a target instead confirms: "Did you wink at them?"</li>
     <li><b>Validation:</b> the game checks reports against the Killers' locked targets.</li>
     <li><b>Crime Scene:</b> victims are announced with a fictional incident. The Killer is never revealed.</li>
     <li><b>Discussion:</b> argue, accuse, survive. The dead stay silent.</li></ul>
-  <h4>How a kill works</h4><p>The <b>locked target on the Killer's phone is the truth</b>. If a Killer locked you, you die at the end of the Action Phase — even if you missed the wink or named the wrong person. Winking at someone you didn't lock is only a bluff.</p>
+  <h4>How a kill works</h4><p>A kill needs two things from the Killer's phone: the target <b>locked</b> during the Action Phase, and the Killer <b>confirming "YES, I winked at them"</b> in the Report Phase. Then the victim dies — even if they missed the wink, said nobody winked at them, or named the wrong person. If the Killer answers NO (couldn't wink in time), nobody dies and it counts as a failed round. Winking at anyone you didn't lock is only a bluff.</p>
   <h4>Immune</h4><p>The Police and other Killers cannot be killed. A Killer who locks the Police wastes the round.</p>
   <h4>The curse</h4><p>Every Killer must kill at least once every ${CURSE_LIMIT} rounds. Three failed rounds in a row and that Killer is consumed — and revealed. A round with no locked target counts as a failure.</p>
   <h4>False reports</h4><p>Saying YES when no Killer targeted you gets a private warning. Warnings only depend on whether you were targeted — never on who you named — so reports can't be used to test people.</p>
   <h4>The accusation</h4><p>The Police has ONE accusation, usable any time (open 👁️ → Accuse). Right: innocents win. Wrong: Killers win. With several Killers the host picks the rule: name <i>any one</i> Killer, or <i>every living</i> Killer at once.</p>
   <h4>Winning</h4><ul><li><b>Innocents:</b> Police names a Killer correctly, or every Killer is consumed by the curse.</li><li><b>Killers:</b> every Netizen is dead, or the Police accuses wrongly.</li></ul>
+  <h4>The dead</h4><p>Eliminated players must stay silent. Their phone opens <b>The Afterlife</b>: drag your ghost and haunt the living players' names. Only other ghosts can see it.</p>
   <h4>Fair play</h4><ul><li>Phones only make sounds that everyone hears at the same moment — locking a target and warnings are silent.</li><li>Hold the 👁️ card to peek at your role; shield your screen.</li><li>If someone's report times out, the game moves on — kills still follow the locked targets.</li><li>No one can join after the game starts. Lost connection? Reopen the link — you'll rejoin as yourself.</li></ul>
   </div><button class="btn block" data-act="closeModal">Close</button>`;
 }
@@ -1029,6 +1093,7 @@ function menuSheet() {
   openModal(`<div class="title">Menu</div>
     <button class="btn block" data-act="rules">📜 How to play</button>
     <button class="btn block" data-act="archive">📁 Crime Archive</button>
+    <button class="btn block" data-act="testSound">🔊 Test sound</button>
     ${host && inGame ? `<div class="label" style="margin-top:6px">Host controls</div>
       ${v.paused ? '<button class="btn block" data-act="resume">▶️ Resume game</button>' : '<button class="btn block" data-act="pause">⏸ Pause game</button>'}
       ${canSkip ? '<button class="btn block" data-act="skip">⏭ Skip this phase</button>' : ''}
@@ -1097,7 +1162,7 @@ document.addEventListener('click', async (e) => {
   if (!(v && QUIET_PHASES.includes(v.phase) && App.screen === 'game') && !['cell', 'closeModal'].includes(a)) sfx.play('click', { vol: 0.5 });
   switch (a) {
     case 'enter':
-      await sfx.unlock(); keepAwake();
+      sfx.unlock(); keepAwake();
       sfx.play('thunder'); fx.lightning();
       sfx.loop('lobby');
       route();
@@ -1144,7 +1209,8 @@ document.addEventListener('click', async (e) => {
     }
     case 'rules': closeModal(); openModal(rulesHTML()); break;
     case 'closeModal': closeModal(); break;
-    case 'mute': sfx.setMuted(!sfx.muted); render(); break;
+    case 'mute': sfx.setMuted(!sfx.muted); if (!sfx.muted) sfx.play('click'); render(); break;
+    case 'testSound': testSound(); break;
     case 'menu': menuSheet(); break;
     case 'role': roleSheet(); break;
     case 'archive': closeModal(); archiveSheet(); break;
@@ -1220,6 +1286,8 @@ document.addEventListener('click', async (e) => {
     case 'reportBack': App.ui.reportYes = false; App.ui.suspect = null; render(); break;
     case 'suspect': App.ui.suspect = t.dataset.id; render(); break;
     case 'sealYes': App.ui.busy = true; render(); sfx.play('submit'); act({ type: 'report', winked: true, suspect: App.ui.suspect }); break;
+    case 'confirmYes': App.ui.busy = true; render(); sfx.play('submit'); act({ type: 'report', confirm: true }); break;
+    case 'confirmNo': App.ui.busy = true; render(); sfx.play('submit'); act({ type: 'report', confirm: false }); break;
     case 'sealNo': App.ui.busy = true; render(); sfx.play('submit'); act({ type: 'report', winked: false }); break;
     case 'accuseOpen': App.ui.accuse = []; closeModal(); accuseSheet(); break;
     case 'accusePick': {

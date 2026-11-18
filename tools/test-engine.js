@@ -26,7 +26,8 @@ const adv = (g, ms = 1e7) => { now += ms; return g.tick(now, ctx); };
 function toAction(g) { g.handle(g.s.hostId, { type: 'skip' }, now); adv(g, 1); assert.equal(g.s.phase, 'action'); }
 function reportAll(g, reports = {}) {
   for (const pl of g.alive()) {
-    const r = reports[pl.id] || { winked: false };
+    // Killers who locked a target confirm the wink by default
+    const r = reports[pl.id] || (pl.role === ROLE.KILLER && g.cur.targets[pl.id] ? { confirm: true } : { winked: false });
     assert.equal(g.handle(pl.id, { type: 'report', ...r }, now).ok, true, 'report ' + pl.id);
   }
 }
@@ -98,6 +99,37 @@ test('Scenario D: no target -> nobody dies, counter climbs, curse at 3 -> innoce
   assert.equal(g.s.phase, 'over');
   assert.equal(g.s.result.winner, 'innocent');
   assert.equal(g.s.result.reason, 'curse');
+});
+
+test('killer says NO (could not wink): nobody dies, round counts as failed', () => {
+  const g = setup(6); assign(g, { p1: ROLE.KILLER, p2: ROLE.POLICE });
+  toAction(g);
+  g.handle('p1', { type: 'target', target: 'p3' }, now);
+  finishRound(g, { p1: { confirm: false }, p3: { winked: true, suspect: 'p1' } });
+  assert.equal(g.p('p3').alive, true);
+  assert.equal(g.p('p3').warnings, 0, 'p3 really was the locked target -> no warning');
+  assert.equal(g.s.killers.p1.failed, 1);
+});
+
+test('killer confirms YES but victim says NO: victim still dies', () => {
+  const g = setup(6); assign(g, { p1: ROLE.KILLER, p2: ROLE.POLICE });
+  toAction(g);
+  g.handle('p1', { type: 'target', target: 'p3' }, now);
+  finishRound(g, { p1: { confirm: true }, p3: { winked: false } });
+  assert.equal(g.p('p3').alive, false);
+  assert.equal(g.s.killers.p1.failed, 0);
+});
+
+test('killer never confirms (report timed out): no kill', () => {
+  const g = setup(6); assign(g, { p1: ROLE.KILLER, p2: ROLE.POLICE });
+  toAction(g);
+  g.handle('p1', { type: 'target', target: 'p3' }, now);
+  adv(g);
+  for (const pl of g.alive()) if (pl.id !== 'p1') g.handle(pl.id, { type: 'report', winked: false }, now);
+  adv(g); // report timeout
+  assert.equal(g.p('p3').alive, true);
+  assert.equal(g.s.killers.p1.failed, 1);
+  assert.equal(g.viewFor('p1', now).me.target, undefined);
 });
 
 test('kill resets counter; targeting police fails silently and counts as failure', () => {
@@ -188,6 +220,8 @@ test('reports: sealed once, dead cannot report, missed reports time out without 
   const pv = g.viewFor('p5', now);
   assert.equal(pv.reportProgress.done, 1);
   assert.ok(!JSON.stringify(pv).includes('winked":false'), 'others reports hidden');
+  assert.equal(g.handle('p1', { type: 'report', confirm: true }, now).ok, true);
+  assert.ok(!JSON.stringify(g.viewFor('p5', now)).includes('confirm'), 'killer confirmation hidden');
   adv(g); // timeout
   assert.equal(g.s.phase, 'validate');
   assert.equal(g.p('p3').alive, false, 'kill stands even though victim never reported');

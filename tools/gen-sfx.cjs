@@ -396,6 +396,15 @@ S.start_game = () => {
   return reverb(drive(b, 1.4), 0.45, 1.4, 3);
 };
 
+S.shh = () => {
+  // a long whispered "shhhh" — silence during the Action Phase
+  const len = 2.4, b = buf(len);
+  const n = noiseBuf(len, (t) => env.adsr(t, 0.25, 0.3, 0.75, 0.9, len) * (0.85 + 0.15 * Math.sin(t * 23)));
+  mix(b, biquad(biquad(n, 'hp', 2200), 'bp', (t) => 4200 - 500 * t, 1.4), 0, 1);
+  mix(b, biquad(n, 'bp', 6500, 2), 0, 0.35);
+  return reverb(b, 0.45, 1.2, 1.6);
+};
+
 // ---- loops ----
 S.ambience = () => {
   // 32 s seamless drone: low detuned sines + wind + distant creaks

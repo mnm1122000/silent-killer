@@ -184,10 +184,14 @@ export class Game {
     // 2. Kills: the Killer's locked target is the source of truth. Police and Killers are immune.
     const aliveKillers = this.alive(ROLE.KILLER);
     const deaths = [];
+    //    A kill needs BOTH: a target locked during the Action Phase AND the Killer confirming
+    //    in the Report Phase that they really winked at that person. The victim's own report
+    //    never matters (they may not have noticed the wink).
     for (const k of aliveKillers) {
       const t = r.targets[k.id];
+      const confirmed = !!(r.reports[k.id] && r.reports[k.id].confirm === true);
       const victim = t && this.p(t);
-      if (victim && victim.alive && victim.role === ROLE.NETIZEN && !deaths.includes(t)) deaths.push(t);
+      if (confirmed && victim && victim.alive && victim.role === ROLE.NETIZEN && !deaths.includes(t)) deaths.push(t);
     }
     const timeText = ctx.fmtTime ? ctx.fmtTime(now) : new Date(now).toLocaleTimeString();
     for (const id of deaths) {
@@ -203,9 +207,10 @@ export class Game {
     for (const k of aliveKillers) {
       const ks = s.killers[k.id];
       const t = r.targets[k.id] || null;
-      const credited = !!t && deaths.includes(t);
+      const confirmed = !!(r.reports[k.id] && r.reports[k.id].confirm === true);
+      const credited = !!t && confirmed && deaths.includes(t);
       ks.failed = credited ? 0 : ks.failed + 1;
-      r.killerResults[k.id] = { target: t, credited, failed: ks.failed };
+      r.killerResults[k.id] = { target: t, confirmed, credited, failed: ks.failed };
       if (ks.failed >= CURSE_LIMIT) {
         k.alive = false; k.cause = 'curse'; k.deathRound = r.n;
         r.items.push({ kind: 'curse', pid: k.id });
@@ -310,6 +315,11 @@ export class Game {
         if (s.phase !== 'report') return { ok: false, error: 'Reports are closed.' };
         if (!me.alive) return { ok: false, error: 'The dead do not report.' };
         if (r.reports[pid]) return { ok: false, error: 'Your report is already sealed.' };
+        // A Killer who locked a target answers a different question: "Did you wink at them?"
+        if (me.role === ROLE.KILLER && r.targets[pid]) {
+          r.reports[pid] = { winked: false, suspect: null, confirm: !!a.confirm, at: now };
+          return { ok: this.bump() };
+        }
         const winked = !!a.winked;
         let suspect = null;
         if (winked) {
@@ -396,12 +406,12 @@ export class Game {
     if (amKiller && s.killers[pid]) {
       v.me.failed = s.killers[pid].failed;
       v.me.curseLimit = CURSE_LIMIT;
-      if (r && s.phase === 'action') v.me.target = r.targets[pid] || null;
+      if (r && ['action', 'report'].includes(s.phase)) v.me.target = r.targets[pid] || null;
     }
     if (me.role === ROLE.POLICE) v.me.accused = !!s.accusation;
     if (r && s.phase === 'report') {
       const aliveIds = this.alive().map((x) => x.id);
-      v.me.myReport = r.reports[pid] ? { winked: r.reports[pid].winked, suspect: r.reports[pid].suspect } : null;
+      v.me.myReport = r.reports[pid] ? { winked: r.reports[pid].winked, suspect: r.reports[pid].suspect, confirm: r.reports[pid].confirm } : null;
       v.reportProgress = { done: aliveIds.filter((id) => r.reports[id]).length, total: aliveIds.length, pending: aliveIds.filter((id) => !r.reports[id]) };
     }
     if (s.announcement && ['announce', 'discussion', 'over'].includes(s.phase)) {
