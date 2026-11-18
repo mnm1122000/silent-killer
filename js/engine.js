@@ -148,7 +148,7 @@ export class Game {
     shuffle(roles, rng);
     const order = shuffle(s.players.map((_, i) => i), rng);
     order.forEach((pi, k) => { s.players[pi].role = roles[k]; });
-    s.players.forEach((pl) => Object.assign(pl, { alive: true, cause: null, deathRound: null, warnings: 0, missed: 0, ready: !!pl.bot }));
+    s.players.forEach((pl) => Object.assign(pl, { alive: true, cause: null, deathRound: null, warnings: 0, missed: 0, escaped: false, ready: !!pl.bot }));
     s.killers = {};
     s.players.filter((x) => x.role === ROLE.KILLER).forEach((x) => { s.killers[x.id] = { failed: 0 }; });
     s.counts = c;
@@ -162,7 +162,7 @@ export class Game {
 
   backToLobby() {
     const s = this.s;
-    s.players.forEach((pl) => Object.assign(pl, { role: null, alive: true, cause: null, deathRound: null, warnings: 0, missed: 0, ready: false }));
+    s.players.forEach((pl) => Object.assign(pl, { role: null, alive: true, cause: null, deathRound: null, warnings: 0, missed: 0, escaped: false, ready: false }));
     s.rounds = []; s.round = 0; s.killers = {}; s.announcement = null; s.accusation = null; s.result = null; s.pendingResult = null;
     this.setPhase('lobby', null, 0);
     return { ok: true };
@@ -183,19 +183,30 @@ export class Game {
     for (const pl of this.alive()) {
       if (!r.reports[pl.id]) { r.reports[pl.id] = { winked: false, suspect: null, missed: true }; pl.missed++; }
     }
-    // 2. Kills: the Killer's locked target is the source of truth. Police and Killers are immune.
+    // 2. Kills: the Killer's locked target + the Killer's confirmation are the source of truth.
+    //    Police and Killers are immune.
+    //    One-time escape: if the victim did NOT notice the wink (reported NO or no report), they
+    //    survive the first time and it is announced publicly that they were winked at. A victim
+    //    who already escaped once dies for sure the next time. A victim who noticed dies at once.
     const aliveKillers = this.alive(ROLE.KILLER);
-    const deaths = [];
-    //    A kill needs BOTH: a target locked during the Action Phase AND the Killer confirming
-    //    in the Report Phase that they really winked at that person. The victim's own report
-    //    never matters (they may not have noticed the wink).
+    const deaths = [], escapes = [], landed = [];
     for (const k of aliveKillers) {
       const t = r.targets[k.id];
       const confirmed = !!(r.reports[k.id] && r.reports[k.id].confirm === true);
       const victim = t && this.p(t);
-      if (confirmed && victim && victim.alive && victim.role === ROLE.NETIZEN && !deaths.includes(t)) deaths.push(t);
+      if (!confirmed || !victim || !victim.alive || victim.role !== ROLE.NETIZEN) continue;
+      landed.push(k.id);
+      if (deaths.includes(t) || escapes.includes(t)) continue;
+      const rep = r.reports[t];
+      const noticed = !!(rep && rep.winked);
+      if (noticed || victim.escaped) deaths.push(t); else escapes.push(t);
     }
     const timeText = ctx.fmtTime ? ctx.fmtTime(now) : new Date(now).toLocaleTimeString();
+    for (const id of escapes) {
+      const v = this.p(id);
+      v.escaped = true;
+      r.items.push({ kind: 'escape', pid: id, time: timeText });
+    }
     for (const id of deaths) {
       const v = this.p(id);
       v.alive = false; v.cause = 'kill'; v.deathRound = r.n;
@@ -210,9 +221,9 @@ export class Game {
       const ks = s.killers[k.id];
       const t = r.targets[k.id] || null;
       const confirmed = !!(r.reports[k.id] && r.reports[k.id].confirm === true);
-      const credited = !!t && confirmed && deaths.includes(t);
+      const credited = landed.includes(k.id); // the wink landed: victim died or used their one escape
       ks.failed = credited ? 0 : ks.failed + 1;
-      r.killerResults[k.id] = { target: t, confirmed, credited, failed: ks.failed };
+      r.killerResults[k.id] = { target: t, confirmed, credited, escaped: !!t && escapes.includes(t), failed: ks.failed };
       if (ks.failed >= CURSE_LIMIT) {
         k.alive = false; k.cause = 'curse'; k.deathRound = r.n;
         r.items.push({ kind: 'curse', pid: k.id });
@@ -396,6 +407,7 @@ export class Game {
       players: s.players.map((x) => ({
         id: x.id, name: x.name, bot: x.bot || undefined,
         alive: x.alive, cause: x.alive ? null : x.cause, deathRound: x.deathRound,
+        marked: x.escaped || undefined, // publicly announced: survived one wink, the next one kills
         // A role is only visible if: it's you, you're both Killers, the curse exposed them, or the game is over.
         role: over || x.id === pid || x.cause === 'curse' || (amKiller && x.role === ROLE.KILLER) ? x.role : null,
       })),
@@ -432,6 +444,7 @@ export class Game {
         history: s.rounds.map((rd) => ({
           n: rd.n, targets: rd.targets, killerResults: rd.killerResults, warnings: rd.warnings,
           deaths: rd.items.filter((i) => i.kind === 'death').map((i) => i.pid),
+          escapes: rd.items.filter((i) => i.kind === 'escape').map((i) => i.pid),
           curses: rd.items.filter((i) => i.kind === 'curse').map((i) => i.pid),
           reports: rd.reports,
         })),

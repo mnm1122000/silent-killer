@@ -20,8 +20,9 @@ A real-life social deduction party game for 5–20 players in the same room. Eac
 
 | Question | Decision |
 |---|---|
-| Selecting a target vs. a "successful" wink | A kill needs **two steps from the Killer**: lock the target during Action, then confirm "YES, I winked at them" in the Report phase. The victim dies even if they reported "nobody winked at me" or named the wrong person (Scenarios A and C), because the victim may simply not have noticed. If the Killer answers NO, or never answers, nobody dies and the round counts as failed. Winking at anyone you didn't lock is only a bluff. A Killer can't change a locked target. |
+| Selecting a target vs. a "successful" wink | A kill needs **two steps from the Killer**: lock the target during Action, then confirm "YES, I winked at them" in the Report phase. A victim who noticed dies even if they named the wrong person (Scenario A). For a victim who didn't notice, see the escape rule below. If the Killer answers NO, or never answers, nobody dies and the round counts as failed. Winking at anyone you didn't lock is only a bluff. A Killer can't change a locked target. |
 | The Killer can't kill the Police | The Police **appears** in the Killer's target list. Removing them would reveal the Police to the Killer. Locking the Police kills nobody and counts as a failed round. Fellow Killers are hidden from the list, because Killers already know each other. |
+| The victim didn't notice the wink (your rule) | If the Killer confirms YES but the victim answered NO (or didn't answer), the victim **escapes once**. A public "Narrow Escape" report says someone winked at them and they didn't notice, and they are marked 👁. The next confirmed wink on them kills for sure. A victim who answered YES dies right away. The escape still counts as a successful wink for the Killer's curse counter. |
 | Two Killers lock the same victim | One death. Both Killers get credit and their counters reset. |
 | What counts as a successful kill (curse) | A round counts as a success for a Killer only if **their own** locked target died. No target, the Police as target, or a disconnect all count as failures. After 3 failures in a row that Killer is consumed by the curse, eliminated and publicly revealed. |
 | Section 6 says three failed rounds is a Killer-team win | Treated as a typo, because Section 3/5 says the Killer **loses**. If every Killer is consumed, the innocents win. |
@@ -80,7 +81,7 @@ Code files are always revalidated by the service worker, so phones don't run an 
 
 ```
 node tools/serve.cjs          # http://localhost:5190  (add ?dev=1 for "Add bot" test players)
-node tools/test-engine.js     # 21 rule tests (scenarios A–D, curse, accusations, multi-killer…)
+node tools/test-engine.js     # 22 rule tests (scenarios A–D, curse, accusations, multi-killer…)
 node tools/gen-sfx.cjs        # regenerate sounds (needs ffmpeg)
 python tools/xlsx_to_json.py  # re-import the scenario spreadsheet
 ```

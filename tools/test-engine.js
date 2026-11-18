@@ -82,11 +82,26 @@ test('Scenario B: false YES gets a private warning, no elimination', () => {
   assert.equal(g.viewFor('p5', now).me.warnedThisRound, false);
 });
 
-test('Scenario C: target reported NO but still dies (locked target is truth)', () => {
+test('Scenario C: victim did not notice -> escapes ONCE (announced), dies the next time', () => {
   const g = setup(6); assign(g, { p1: ROLE.KILLER, p2: ROLE.POLICE });
   toAction(g);
   g.handle('p1', { type: 'target', target: 'p3' }, now);
-  finishRound(g, {});
+  finishRound(g, {}); // p3 reports NO
+  assert.equal(g.p('p3').alive, true);
+  assert.equal(g.s.announcement.items[0].kind, 'escape');
+  assert.equal(g.viewFor('p4', now).players.find((p) => p.id === 'p3').marked, true, 'public: marked');
+  assert.equal(g.s.killers.p1.failed, 0, 'the wink landed, so the curse resets');
+  adv(g);
+  g.handle('p1', { type: 'target', target: 'p3' }, now);
+  finishRound(g, {}); // NO again -> no second escape
+  assert.equal(g.p('p3').alive, false);
+});
+
+test('victim who noticed (YES) dies immediately, no escape', () => {
+  const g = setup(6); assign(g, { p1: ROLE.KILLER, p2: ROLE.POLICE });
+  toAction(g);
+  g.handle('p1', { type: 'target', target: 'p3' }, now);
+  finishRound(g, { p3: { winked: true, suspect: 'p1' } });
   assert.equal(g.p('p3').alive, false);
 });
 
@@ -111,13 +126,12 @@ test('killer says NO (could not wink): nobody dies, round counts as failed', () 
   assert.equal(g.s.killers.p1.failed, 1);
 });
 
-test('killer confirms YES but victim says NO: victim still dies', () => {
+test('escape is per victim: a different unnoticing victim also gets one escape', () => {
   const g = setup(6); assign(g, { p1: ROLE.KILLER, p2: ROLE.POLICE });
   toAction(g);
-  g.handle('p1', { type: 'target', target: 'p3' }, now);
-  finishRound(g, { p1: { confirm: true }, p3: { winked: false } });
-  assert.equal(g.p('p3').alive, false);
-  assert.equal(g.s.killers.p1.failed, 0);
+  g.handle('p1', { type: 'target', target: 'p3' }, now); finishRound(g, {}); adv(g);
+  g.handle('p1', { type: 'target', target: 'p4' }, now); finishRound(g, {});
+  assert.equal(g.p('p3').alive, true); assert.equal(g.p('p4').alive, true);
 });
 
 test('killer never confirms (report timed out): no kill', () => {
@@ -170,7 +184,7 @@ test('two killers same victim: one death, both credited; separate counters', () 
   toAction(g);
   g.handle('p1', { type: 'target', target: 'p3' }, now);
   g.handle('p6', { type: 'target', target: 'p3' }, now);
-  finishRound(g, {});
+  finishRound(g, { p3: { winked: true, suspect: 'p1' } });
   assert.equal(g.s.announcement.items.filter((i) => i.kind === 'death').length, 1);
   assert.equal(g.s.killers.p1.failed, 0); assert.equal(g.s.killers.p6.failed, 0);
   adv(g); g.handle('p1', { type: 'target', target: 'p4' }, now); finishRound(g, {});
@@ -195,7 +209,7 @@ test('massacre: last netizen dies -> killers win', () => {
   toAction(g);
   for (const victim of ['p0', 'p3', 'p4']) {
     g.handle('p1', { type: 'target', target: victim }, now);
-    finishRound(g, {});
+    finishRound(g, { [victim]: { winked: true, suspect: 'p1' } });
     if (g.s.phase !== 'over') adv(g);
   }
   assert.equal(g.s.phase, 'over'); assert.equal(g.s.result.winner, 'killer'); assert.equal(g.s.result.reason, 'massacre');
@@ -235,12 +249,14 @@ test('reports: sealed once, dead cannot report, missed reports time out without 
   assert.ok(!JSON.stringify(g.viewFor('p5', now)).includes('confirm'), 'killer confirmation hidden');
   adv(g); // timeout
   assert.equal(g.s.phase, 'validate');
-  assert.equal(g.p('p3').alive, false, 'kill stands even though victim never reported');
+  assert.equal(g.p('p3').alive, true, 'victim never reported = did not notice -> one escape');
+  assert.equal(g.p('p3').escaped, true);
   assert.equal(g.p('p5').missed, 1);
   adv(g); adv(g); adv(g); // announce->discussion->action
   assert.equal(g.s.phase, 'action');
   g.tick(now, ctx); adv(g);
-  assert.equal(g.handle('p3', { type: 'report', winked: false }, now).ok, false, 'dead cannot report');
+  g.p('p5').alive = false;
+  assert.equal(g.handle('p5', { type: 'report', winked: false }, now).ok, false, 'dead cannot report');
 });
 
 test('host controls: pause freezes timer, cannot skip action, host has no secret access', () => {

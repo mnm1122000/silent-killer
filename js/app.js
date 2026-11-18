@@ -1,9 +1,9 @@
 // SILENT KILLER — app: screens, host loop, client flow, sound & effects per phase.
-import { Game, ROLE, MODES, MIN_PLAYERS, MAX_PLAYERS, roleCounts, maxKillers, CURSE_LIMIT } from './engine.js?v=4';
-import * as net from './net.js?v=4';
-import { sfx, vibrate } from './sfx.js?v=4';
-import { fx } from './fx.js?v=4';
-import { afterlife } from './afterlife.js?v=4';
+import { Game, ROLE, MODES, MIN_PLAYERS, MAX_PLAYERS, roleCounts, maxKillers, CURSE_LIMIT } from './engine.js?v=5';
+import * as net from './net.js?v=5';
+import { sfx, vibrate } from './sfx.js?v=5';
+import { fx } from './fx.js?v=5';
+import { afterlife } from './afterlife.js?v=5';
 
 // ======================================================================
 // utils
@@ -272,7 +272,7 @@ async function onHostUp(data) {
 App.hauntAt = {};
 function hostHaunt(from, target) {
   const g = App.game, now = Date.now();
-  if (!g || !g.s.settings.ghostHaunt || !g.inGame()) return;
+  if (!g || g.s.settings.ghostHaunt === false || !g.inGame()) return;
   const f = g.p(from), t = g.p(target);
   if (!f || f.alive || !t || !t.alive || t.bot) return;
   if (now - (App.hauntAt[from] || 0) < 1500 || now - (App.hauntAt['t:' + target] || 0) < 1000) return;
@@ -461,7 +461,8 @@ function showHaunt(from) {
   el.style.backgroundImage = img ? `url('${img}')` : 'none';
   el.dataset.name = img ? '' : (p ? p.name : '');
   el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
-  vibrate([40, 60, 40, 60, 90]);
+  fx.shake(); // iPhones can't vibrate from a website, so the screen shivers too
+  vibrate([60, 50, 60, 50, 120]);
 }
 
 function teardown() {
@@ -595,6 +596,7 @@ function frame() {
         const it = v.announcement.items[shown - 1];
         if (it) {
           if (it.kind === 'death') { sfx.play('death'); fx.blood(); fx.shake(); vibrate([80, 60, 200]); }
+          else if (it.kind === 'escape') { sfx.play('wink', { vol: 1 }); sfx.play('heartbeat', { delay: 0.6 }); sfx.play('heartbeat', { delay: 1.5 }); fx.lightning(); }
           else { sfx.play('curse'); fx.lightning(); fx.shake(); }
         }
         render();
@@ -864,7 +866,7 @@ function mountAfterlife() {
   afterlife.onMove = (x, y) => App.bus && App.bus.publish('gh/' + App.me, { x, y }, { qos: 0 });
   afterlife.onHaunt = (targetId) => {
     vibrate(12);
-    if (!App.view.settings.ghostHaunt) return;
+    if (App.view.settings.ghostHaunt === false) return;
     if (App.mode === 'host') hostHaunt(App.me, targetId);
     else sendHost({ type: 'haunt', target: targetId });
   };
@@ -888,7 +890,7 @@ function grid(list, { selected = [], disabled = () => false, marks = true, act =
     const dis = disabled(p);
     const m = notes[p.id];
     const mark = p.role === ROLE.KILLER && p.id !== App.view.me.id ? '<span class="mark mk">🔪</span>' : marks && m === 1 ? '<span class="mark m1">?</span>' : marks && m === 2 ? '<span class="mark m2">✓</span>' : '';
-    return `<div class="pcell ${sel ? 'sel' : ''} ${dis ? 'disabled' : ''} ${!p.alive ? 'deadc' : ''}" data-act="${act}" data-id="${esc(p.id)}">${mark}${av(p.id, p.name, p.alive ? '' : 'dead')}<div class="nm">${esc(p.name)}</div></div>`;
+    return `<div class="pcell ${sel ? 'sel' : ''} ${dis ? 'disabled' : ''} ${!p.alive ? 'deadc' : ''}" data-act="${act}" data-id="${esc(p.id)}">${mark}${av(p.id, p.name, p.alive ? '' : 'dead')}<div class="nm">${p.marked && p.alive ? '👁 ' : ''}${esc(p.name)}</div></div>`;
   }).join('')}</div>`;
 }
 
@@ -990,6 +992,14 @@ function rValidate() {
 
 function crimeCard(it, v) {
   const p = P(it.pid) || { id: it.pid, name: '?' };
+  if (it.kind === 'escape') {
+    return `<div class="crime escape"><div class="c-head"><span>INCIDENT REPORT</span><span>ROUND ${it.round || (v.announcement && v.announcement.round)}</span></div>
+      <div class="c-victim">👁 Someone winked at ${esc(p.name)}</div>
+      <div class="c-title">A Narrow Escape</div>
+      <div class="c-body"><div class="c-photo">${av(p.id, p.name)}</div>
+      <div class="c-text">At ${esc(it.time || '')}, a Killer winked at <b>${esc(p.name)}</b>… but ${esc(p.name)} didn't notice. The wink missed its mark — this time. <b>${esc(p.name)} is now marked: the next wink will be fatal.</b></div></div>
+      <div class="stamp">MARKED</div></div>`;
+  }
   if (it.kind === 'curse') {
     return `<div class="crime curse"><div class="c-head"><span>CRIME ARCHIVE</span><span>ROUND ${v.announcement ? v.announcement.round : it.round}</span></div>
       <div class="c-title">Consumed by the Curse</div>
@@ -1022,7 +1032,7 @@ function rDiscussion(v) {
   const deaths = (v.announcement && v.announcement.items) || [];
   return `${!v.me.alive ? deadBox(v) + afterlifeCard() : `<div class="card center type">🗣️ <b>Now you may talk.</b> Share what you saw and who you suspect.<br><b>The dead may not speak.</b></div>`}
     ${v.me.warnedThisRound ? `<div class="warning-box">⚠️ Your last report was flagged. Warnings: ${v.me.warnings}</div>` : ''}
-    ${deaths.length ? `<div class="card"><h3>This round</h3>${deaths.map((it) => `<div class="prow">${av(it.pid, P(it.pid)?.name, 'dead')}<div class="stack"><span class="name">${esc(P(it.pid)?.name)}</span><span class="small">${it.kind === 'curse' ? 'Cursed Killer' : esc(it.title)}</span></div></div>`).join('')}</div>` : ''}
+    ${deaths.length ? `<div class="card"><h3>This round</h3>${deaths.map((it) => `<div class="prow">${av(it.pid, P(it.pid)?.name, it.kind === 'escape' ? '' : 'dead')}<div class="stack"><span class="name">${esc(P(it.pid)?.name)}</span><span class="small">${it.kind === 'curse' ? 'Cursed Killer' : it.kind === 'escape' ? '👁 Winked at, did not notice — marked' : esc(it.title)}</span></div></div>`).join('')}</div>` : ''}
     ${rRoster(v)}
     ${isHost() ? `<button class="btn block" data-act="skip">⏭ End discussion now</button>` : ''}`;
 }
@@ -1060,7 +1070,7 @@ function rOver(v) {
       const kn = esc(P(k)?.name);
       if (!kr.target) return `🔪 ${kn} chose no target`;
       const tp = P(kr.target);
-      const how = !kr.confirmed ? '→ never confirmed a wink (no kill)' : h.deaths.includes(kr.target) ? '→ winked → <b style="color:var(--blood-hi)">killed</b>' : tp && tp.role === ROLE.POLICE ? '→ winked, but the Police is immune' : '→ survived';
+      const how = !kr.confirmed ? '→ never confirmed a wink (no kill)' : kr.escaped ? `→ winked, but ${esc(tp?.name)} didn't notice (escaped once)` : h.deaths.includes(kr.target) ? '→ winked → <b style="color:var(--blood-hi)">killed</b>' : tp && tp.role === ROLE.POLICE ? '→ winked, but the Police is immune' : '→ survived';
       return `🔪 ${kn} targeted ${esc(tp?.name)} ${how}`;
     });
     h.curses.forEach((c) => lines.push(`☠️ ${esc(P(c)?.name)} was consumed by the curse`));
@@ -1102,6 +1112,7 @@ function rulesHTML() {
     <li><b>Validation:</b> the game checks reports against the Killers' locked targets.</li>
     <li><b>Crime Scene:</b> victims are announced with a fictional incident. The Killer is never revealed.</li>
     <li><b>Discussion:</b> argue, accuse, survive. The dead stay silent.</li></ul>
+  <h4>Didn't notice the wink?</h4><p>If the Killer confirms the wink but the victim answered "nobody winked at me", the victim <b>escapes once</b>. Everyone is told that someone winked at them and they didn't notice, and they are marked 👁. The next confirmed wink on a marked player kills them for sure. A victim who answers YES dies right away.</p>
   <h4>How a kill works</h4><p>A kill needs two things from the Killer's phone: the target <b>locked</b> during the Action Phase, and the Killer <b>confirming "YES, I winked at them"</b> in the Report Phase. Then the victim dies — even if they missed the wink, said nobody winked at them, or named the wrong person. If the Killer answers NO (couldn't wink in time), nobody dies and it counts as a failed round. Winking at anyone you didn't lock is only a bluff.</p>
   <h4>Immune</h4><p>The Police and other Killers cannot be killed. A Killer who locks the Police wastes the round.</p>
   <h4>The curse</h4><p>Every Killer must kill at least once every ${CURSE_LIMIT} rounds. Three failed rounds in a row and that Killer is consumed — and revealed. A round with no locked target counts as a failure.</p>
