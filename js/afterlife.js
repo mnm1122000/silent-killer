@@ -143,7 +143,7 @@ function step(now) {
       for (let i = 0; i < 5; i++) particles.push({ x: bx, y: by, vx: rand(-40, 40), vy: rand(-90, -30), life: 1, txt: i === 0 ? words[Math.floor(Math.random() * words.length)] : '·' });
       const el = document.getElementById('hauntCount');
       if (el) el.textContent = `Haunted ×${haunts}`;
-      onHaunt && onHaunt(b.name);
+      onHaunt && onHaunt(b.id);
     }
   }
   // remote ghosts glide toward their last known spot
@@ -193,7 +193,7 @@ export const afterlife = {
     const keep = new Set(living.map((p) => p.id));
     for (const id of [...bubbles.keys()]) if (!keep.has(id)) bubbles.delete(id);
     for (const p of living) {
-      if (!bubbles.has(p.id)) bubbles.set(p.id, { name: p.name, x: rand(0.18, 0.82), y: rand(0.12, 0.88), vx: rand(-0.06, 0.06), vy: rand(-0.06, 0.06), haunt: 0, cool: 0 });
+      if (!bubbles.has(p.id)) bubbles.set(p.id, { id: p.id, name: p.name, x: rand(0.18, 0.82), y: rand(0.12, 0.88), vx: rand(-0.06, 0.06), vy: rand(-0.06, 0.06), haunt: 0, cool: 0 });
       else bubbles.get(p.id).name = p.name;
     }
     const ghosts = new Set(dead.map((p) => p.id));

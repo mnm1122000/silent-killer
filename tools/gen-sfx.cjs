@@ -468,6 +468,21 @@ S.tension = () => {
   return out;
 };
 
+// ---------- phone speakers ----------
+// Phone speakers can't reproduce much below ~250 Hz, so deep booms/drones/heartbeats vanish.
+// Add harmonics of the bass (the ear hears the "missing" fundamental) and raise loudness.
+function phoneify(b, amt = 1) {
+  const low = biquad(b, 'lp', 170);
+  const h = new Float32Array(b.length);
+  for (let i = 0; i < b.length; i++) h[i] = Math.tanh(low[i] * 7);
+  const hb = biquad(biquad(h, 'hp', 190), 'lp', 1400);
+  for (let i = 0; i < b.length; i++) b[i] += hb[i] * 0.45 * amt;
+  normalize(b, 1);
+  const k = 1 + 1.4 * amt;
+  for (let i = 0; i < b.length; i++) b[i] = Math.tanh(b[i] * k) / Math.tanh(k);
+  return b;
+}
+
 // ---------- write ----------
 function writeWav(file, data) {
   const n = data.length, bufOut = Buffer.alloc(44 + n * 2);
@@ -486,7 +501,9 @@ for (const name of Object.keys(S)) {
   if (only.length && !only.includes(name)) continue;
   seed = 1337 + name.length * 97;
   let data = S[name]();
-  normalize(data, LOOPS.has(name) ? 0.7 : 0.89);
+  const AMT = { heartbeat: 2.2, ambience: 1.3, tension: 1.1, lobby: 0.6 };
+  if (!['click', 'tick'].includes(name)) phoneify(data, AMT[name] ?? 1);
+  normalize(data, LOOPS.has(name) ? 0.8 : 0.95);
   if (!LOOPS.has(name)) fadeEdges(data, 0.002, 0.15);
   const wav = path.join(WAV, name + '.wav');
   writeWav(wav, data);

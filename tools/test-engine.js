@@ -132,6 +132,17 @@ test('killer never confirms (report timed out): no kill', () => {
   assert.equal(g.viewFor('p1', now).me.target, undefined);
 });
 
+test('killer with no target: report is just "I did not wink", never a warning', () => {
+  const g = setup(6); assign(g, { p1: ROLE.KILLER, p2: ROLE.POLICE });
+  toAction(g); adv(g);
+  assert.equal(g.handle('p1', { type: 'report', winked: true, suspect: 'p3' }, now).ok, true);
+  assert.equal(g.cur.reports.p1.confirm, false);
+  assert.equal(g.cur.reports.p1.winked, false);
+  for (const pl of g.alive()) if (pl.id !== 'p1') g.handle(pl.id, { type: 'report', winked: false }, now);
+  g.tick(now, ctx);
+  assert.equal(g.p('p1').warnings, 0);
+});
+
 test('kill resets counter; targeting police fails silently and counts as failure', () => {
   const g = setup(6); assign(g, { p1: ROLE.KILLER, p2: ROLE.POLICE });
   toAction(g); finishRound(g, {}); assert.equal(g.s.killers.p1.failed, 1);

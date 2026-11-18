@@ -10,7 +10,7 @@ const NAMES = ['click', 'tick', 'tick_urgent', 'heartbeat', 'thunder', 'sting_ac
 class Sfx {
   constructor() {
     this.ctx = null; this.buffers = {}; this.master = null; this.musicBus = null;
-    this.loops = {}; this.muted = false; this.musicVol = 0.55;
+    this.loops = {}; this.muted = false; this.musicVol = 0.8;
     try { this.muted = localStorage.getItem('sk_muted') === '1'; } catch (_) {}
   }
 
@@ -35,9 +35,14 @@ class Sfx {
     if (this.mediaEl.paused) { const pr = this.mediaEl.play(); if (pr && pr.catch) pr.catch(() => {}); }
     if (!this.ctx) {
       this.ctx = new AC();
+      // master -> compressor -> makeup gain -> speakers: louder and punchier on phone speakers
       this.master = this.ctx.createGain();
       this.master.gain.value = this.muted ? 0 : 1;
-      this.master.connect(this.ctx.destination);
+      const comp = this.ctx.createDynamicsCompressor();
+      comp.threshold.value = -20; comp.knee.value = 10; comp.ratio.value = 5; comp.attack.value = 0.003; comp.release.value = 0.25;
+      const makeup = this.ctx.createGain();
+      makeup.gain.value = 1.5;
+      this.master.connect(comp).connect(makeup).connect(this.ctx.destination);
       this.musicBus = this.ctx.createGain();
       this.musicBus.gain.value = this.musicVol;
       this.musicBus.connect(this.master);
@@ -76,8 +81,32 @@ class Sfx {
     if (this.master) this.master.gain.setTargetAtTime(m ? 0 : 1, this.ctx.currentTime, 0.05);
   }
 
+  // Fallback when Web Audio is blocked/suspended: a plain <audio> element (works on more phones).
+  playHtml(name, vol = 1) {
+    if (this.muted) return;
+    try {
+      const a = new Audio(`assets/sfx/${name}.mp3`);
+      a.volume = Math.min(1, vol);
+      a.setAttribute('playsinline', '');
+      const pr = a.play(); if (pr && pr.catch) pr.catch(() => {});
+    } catch (_) {}
+  }
+
+  status() {
+    return {
+      ctx: this.ctx ? this.ctx.state : 'none',
+      loaded: Object.keys(this.buffers).length, total: NAMES.length,
+      media: this.mediaEl ? (this.mediaEl.paused ? 'paused' : 'playing') : 'none',
+      muted: this.muted,
+    };
+  }
+
   play(name, opts = {}) {
-    if (!this.ctx) return;
+    if (!this.ctx || this.ctx.state !== 'running') {
+      if (this.ctx && this.ctx.resume) this.ctx.resume().catch(() => {});
+      if (!opts.delay) this.playHtml(name, opts.vol ?? 1);
+      return;
+    }
     if (!this.buffers[name]) {
       // not decoded yet: play it as soon as it is, unless that is too late to make sense
       const asked = Date.now();

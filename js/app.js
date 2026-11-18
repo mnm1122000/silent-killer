@@ -1,9 +1,9 @@
 // SILENT KILLER — app: screens, host loop, client flow, sound & effects per phase.
-import { Game, ROLE, MODES, MIN_PLAYERS, MAX_PLAYERS, roleCounts, maxKillers, CURSE_LIMIT } from './engine.js';
-import * as net from './net.js';
-import { sfx, vibrate } from './sfx.js';
-import { fx } from './fx.js';
-import { afterlife } from './afterlife.js';
+import { Game, ROLE, MODES, MIN_PLAYERS, MAX_PLAYERS, roleCounts, maxKillers, CURSE_LIMIT } from './engine.js?v=4';
+import * as net from './net.js?v=4';
+import { sfx, vibrate } from './sfx.js?v=4';
+import { fx } from './fx.js?v=4';
+import { afterlife } from './afterlife.js?v=4';
 
 // ======================================================================
 // utils
@@ -157,11 +157,13 @@ for (const ev of ['touchend', 'click', 'keydown']) {
 function testSound() {
   sfx.unlock();
   if (sfx.muted) sfx.setMuted(false);
-  sfx.play('death', { vol: 1 });
+  setTimeout(() => sfx.play('discussion', { vol: 1 }), 80);
   setTimeout(() => {
-    if (!sfx.ready) toast('Sound is still blocked — tap the screen once more.', 4000);
-    else toast('🔊 Hear that? If not: turn off Silent mode, raise the media volume, and check no Bluetooth device is connected.', 6000);
-  }, 600);
+    const st = sfx.status();
+    const ok = st.ctx === 'running';
+    toast(`${ok ? '🔊 Sound is ON' : '⚠️ Sound blocked — tap again'} · audio ${st.ctx} · ${st.loaded}/${st.total} sounds loaded. `
+      + 'Hear nothing? Turn Silent mode OFF, raise the media volume, close other apps using audio, disconnect Bluetooth.', 7000);
+  }, 900);
   render();
 }
 document.addEventListener('visibilitychange', () => {
@@ -253,6 +255,7 @@ async function onHostUp(data) {
       break;
     }
     case 'sync': sendView(pid, true); break;
+    case 'haunt': hostHaunt(pid, msg.target); break;
     case 'ping': if (!App.lastSent[pid]) sendView(pid, true); break;
     case 'act': {
       if (!g.p(pid)) return;
@@ -262,6 +265,20 @@ async function onHostUp(data) {
       break;
     }
   }
+}
+
+// A dead player's ghost touched a living player's name: flash the ghost's face on that
+// player's screen and vibrate their phone. Rate-limited so ghosts can't spam.
+App.hauntAt = {};
+function hostHaunt(from, target) {
+  const g = App.game, now = Date.now();
+  if (!g || !g.s.settings.ghostHaunt || !g.inGame()) return;
+  const f = g.p(from), t = g.p(target);
+  if (!f || f.alive || !t || !t.alive || t.bot) return;
+  if (now - (App.hauntAt[from] || 0) < 1500 || now - (App.hauntAt['t:' + target] || 0) < 1000) return;
+  App.hauntAt[from] = now; App.hauntAt['t:' + target] = now;
+  if (target === App.me) showHaunt(from);
+  else sendTo(target, { type: 'haunt', from });
 }
 
 async function sendTo(pid, obj) {
@@ -424,6 +441,7 @@ async function onClientDn(data) {
   if (data.t !== 'm') return;
   let msg;
   try { msg = await net.unseal(App.hostKey, data); } catch (_) { return; }
+  if (msg.type === 'haunt') { showHaunt(msg.from); return; }
   if (msg.type === 'view') { App.lastViewAt = Date.now(); netBanner(null); App.screen = 'game'; applyView(msg.v); }
   else if (msg.type === 'error') {
     toast(msg.error, 3500);
@@ -431,6 +449,19 @@ async function onClientDn(data) {
     if (msg.fatal) { store.del('last'); teardown(); }
     else render();
   }
+}
+
+function showHaunt(from) {
+  const v = App.view;
+  if (!v || !v.me.alive) return;
+  const img = App.avatars[from];
+  const el = document.getElementById('haunt');
+  if (!el) return;
+  const p = v.players.find((x) => x.id === from);
+  el.style.backgroundImage = img ? `url('${img}')` : 'none';
+  el.dataset.name = img ? '' : (p ? p.name : '');
+  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  vibrate([40, 60, 40, 60, 90]);
 }
 
 function teardown() {
@@ -766,6 +797,7 @@ function rSettings(v, host) {
     <div class="label" style="margin-top:14px">Police wins by naming</div>
     <div class="chips">${chip(s.accuseRule === 'any', 'accuseRule', 'any', 'Any one Killer')}${chip(s.accuseRule === 'all', 'accuseRule', 'all', 'Every living Killer')}</div>
     <div class="switch" style="margin-top:12px"><div><div style="font-weight:600">Skip discussion after a quiet round</div><div class="small">No body → straight to the next Action Phase</div></div><div class="toggle ${s.skipQuietDiscussion ? 'on' : ''} ${host ? '' : 'disabled'}" ${host ? 'data-act="toggleQuiet"' : ''}></div></div>
+    <div class="switch"><div><div style="font-weight:600">Ghosts can haunt the living</div><div class="small">A dead player's ghost makes your screen flash their face + vibrate</div></div><div class="toggle ${s.ghostHaunt !== false ? 'on' : ''} ${host ? '' : 'disabled'}" ${host ? 'data-act="toggleHaunt"' : ''}></div></div>
     <div class="switch"><div><div style="font-weight:600">Special roles</div><div class="small">Doctor, Informant, Jester… coming soon</div></div><div class="toggle disabled"></div></div>
   </div>`;
 }
@@ -817,7 +849,7 @@ function rReveal(v) {
 function afterlifeCard() {
   return `<div class="card afterlife"><div class="row"><h3 style="margin:0">👻 The Afterlife</h3><div class="spacer"></div><span class="small" id="hauntCount"></span></div>
     <div id="afterlife" class="afterlife-box"></div>
-    <div class="small">Drag your ghost and touch the living to haunt them. Only the dead can see this — the living feel nothing.</div></div>`;
+    <div class="small">Drag your ghost and touch a living player's name to haunt them${App.view && App.view.settings.ghostHaunt !== false ? ' — their screen flickers with your face and their phone shivers' : ''}. Only the dead see this playground. Still no talking!</div></div>`;
 }
 
 function mountAfterlife() {
@@ -830,7 +862,12 @@ function mountAfterlife() {
     dead: v.players.filter((p) => !p.alive && p.id !== v.me.id),
   });
   afterlife.onMove = (x, y) => App.bus && App.bus.publish('gh/' + App.me, { x, y }, { qos: 0 });
-  afterlife.onHaunt = () => vibrate(12);
+  afterlife.onHaunt = (targetId) => {
+    vibrate(12);
+    if (!App.view.settings.ghostHaunt) return;
+    if (App.mode === 'host') hostHaunt(App.me, targetId);
+    else sendHost({ type: 'haunt', target: targetId });
+  };
   if (!App.ghostSub && App.bus) {
     App.ghostSub = true;
     App.bus.subscribe('gh/+', (d, id) => { if (d && id !== App.me && App.view && !App.view.me.alive) afterlife.remote(id, d.x, d.y); });
@@ -865,16 +902,29 @@ function rAction(v) {
       const t = P(me.target);
       return `${silenceBanner()}<div class="card"><h3>Mark your suspects</h3><div class="small" style="margin-bottom:10px">🔒 Locked: <b>${esc(t.name)}</b> — now wink at them. Failed rounds: ${me.failed}/${me.curseLimit}</div>
         ${grid(others, { marks: true })}</div>
-        <div class="card type center" style="font-size:14px">Wink at <b>${esc(t.name)}</b> — don't get caught.<br>After the timer you must confirm whether you really winked.</div>`;
+        ${roleTip('killer', t.name)}`;
     }
     return `${silenceBanner()}<div class="card"><h3>Choose your target</h3><div class="small" style="margin-bottom:10px">Tap a face, then lock it. One target per round — you can't change it.</div>
       ${grid(others, { selected: [App.ui.sel], disabled: (p) => p.role === ROLE.KILLER, marks: true })}</div>
+      ${roleTip('killer')}
       <button class="btn primary big block" data-act="lock" ${App.ui.sel ? '' : 'disabled'}>${App.ui.sel ? `Lock ${esc(P(App.ui.sel)?.name || '')}` : 'Select a target'}</button>
       <div class="small center">Failed rounds in a row: ${me.failed}/${me.curseLimit}${me.failed >= me.curseLimit - 1 ? ' — <b style="color:var(--blood-hi)">the curse is near</b>' : ''}</div>`;
   }
   return `${silenceBanner()}<div class="card"><h3>Mark your suspects</h3><div class="small" style="margin-bottom:10px">Tap faces to note them: ? suspicious · ✓ trusted. Private to you.</div>
     ${grid(others, { marks: true })}</div>
-    <div class="card type center" style="font-size:14px">If someone winks at you: <b>stay silent</b>, don't react, don't accuse out loud.<br>Remember who — you'll report it when the timer ends.</div>`;
+    ${roleTip(me.role)}`;
+}
+
+// What to do this Action Phase, depending on your secret role.
+function roleTip(role, targetName) {
+  const tips = {
+    killer: targetName
+      ? `🔪 <b>Your move.</b> Mingle silently and <b>wink at ${esc(targetName)}</b> to kill them. Make it quick — if anyone, especially the Police, catches your wink, you're exposed.<br><span class="small">After the timer you confirm: "YES, I winked at ${esc(targetName)}".</span>`
+      : `🔪 <b>Pick your victim</b>, lock them, then mingle silently and <b>wink at them</b> to kill. Don't let anyone catch you winking.`,
+    police: `🔎 <b>You are the detective.</b> Mingle silently and <b>watch everyone's eyes</b>. Catch the person who winks at others. You can't be killed. When you're sure, open 👁️ → <b>Accuse</b> — you only get one chance.`,
+    netizen: `👀 <b>Survive.</b> Mingle silently and watch the eyes. If someone winks at you: <b>stay calm, don't react, don't say anything</b>. Remember who it was and report it when the timer ends.`,
+  };
+  return `<div class="card type center tip" style="font-size:14px">${tips[role] || tips.netizen}</div>`;
 }
 
 function silenceBanner() {
@@ -888,7 +938,16 @@ function rReport(v) {
     <div style="height:8px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden"><div style="height:100%;width:${rp.total ? (rp.done / rp.total) * 100 : 0}%;background:var(--blood-hi)"></div></div>
     ${rp.pending.length ? `<div class="pending-names" style="margin-top:8px">Waiting for: ${rp.pending.map((id) => esc(P(id)?.name)).join(', ')}</div>` : ''}</div>`;
   if (!me.alive) return deadBox(v) + afterlifeCard() + progress;
-  const confirming = me.role === ROLE.KILLER && me.target;
+  const confirming = me.role === ROLE.KILLER;
+  if (confirming && !me.target) {
+    if (me.myReport) return `<div class="card center"><div class="horror" style="font-size:28px">Report sealed</div><p class="type">You didn't lock a target, so you didn't wink at anyone this round.</p><div class="small">Failed rounds in a row: ${me.failed + 1}/${me.curseLimit}</div></div>${progress}`;
+    return `<div class="bigq">Did you wink at<br>anyone?</div>
+      <div class="yesno">
+        <button class="btn" disabled><span class="ic">😉</span>YES,<br>I winked at…</button>
+        <button class="btn" data-act="confirmNo" ${App.ui.busy ? 'disabled' : ''}><span class="ic">😐</span>NO,<br>I didn't wink</button>
+      </div>
+      <div class="small center">You didn't lock a target this round, so there is no kill. This counts as a failed round.</div>${progress}`;
+  }
   if (me.myReport && confirming) {
     return `<div class="card center"><div class="horror" style="font-size:28px">Report sealed</div>
       <p class="type">${me.myReport.confirm ? `You confirmed you winked at <b>${esc(P(me.target)?.name)}</b>.` : 'You said you did not manage to wink this round.'}</p>
@@ -920,7 +979,8 @@ function rReport(v) {
       <button class="btn" data-act="reportYes"><span class="ic">😉</span>YES,<br>I was winked at</button>
       <button class="btn" data-act="sealNo" ${App.ui.busy ? 'disabled' : ''}><span class="ic">😐</span>NO,<br>nobody winked</button>
     </div>
-    <div class="small center">Be honest. False reports are recorded as warnings.</div>${progress}`;
+    <div class="small center">Be honest. False reports are recorded as warnings.</div>
+    ${me.role === ROLE.POLICE ? '<div class="small center">🔎 Saw someone wink at another player? Keep it in mind for the Discussion — or accuse via 👁️.</div>' : ''}${progress}`;
 }
 
 function rValidate() {
@@ -1048,7 +1108,7 @@ function rulesHTML() {
   <h4>False reports</h4><p>Saying YES when no Killer targeted you gets a private warning. Warnings only depend on whether you were targeted — never on who you named — so reports can't be used to test people.</p>
   <h4>The accusation</h4><p>The Police has ONE accusation, usable any time (open 👁️ → Accuse). Right: innocents win. Wrong: Killers win. With several Killers the host picks the rule: name <i>any one</i> Killer, or <i>every living</i> Killer at once.</p>
   <h4>Winning</h4><ul><li><b>Innocents:</b> Police names a Killer correctly, or every Killer is consumed by the curse.</li><li><b>Killers:</b> every Netizen is dead, or the Police accuses wrongly.</li></ul>
-  <h4>The dead</h4><p>Eliminated players must stay silent. Their phone opens <b>The Afterlife</b>: drag your ghost and haunt the living players' names. Only other ghosts can see it.</p>
+  <h4>The dead</h4><p>Eliminated players must stay silent. Their phone opens <b>The Afterlife</b>: drag your ghost and touch living players' names to haunt them — the haunted player's screen flickers with the ghost's face and their phone vibrates (the host can turn this off).</p>
   <h4>Fair play</h4><ul><li>Phones only make sounds that everyone hears at the same moment — locking a target and warnings are silent.</li><li>Hold the 👁️ card to peek at your role; shield your screen.</li><li>If someone's report times out, the game moves on — kills still follow the locked targets.</li><li>No one can join after the game starts. Lost connection? Reopen the link — you'll rejoin as yourself.</li></ul>
   </div><button class="btn block" data-act="closeModal">Close</button>`;
 }
@@ -1252,6 +1312,7 @@ document.addEventListener('click', async (e) => {
     case 'reportSec': act({ type: 'settings', patch: { reportSec: Number(t.dataset.v) } }); break;
     case 'killers': act({ type: 'settings', patch: { killers: t.dataset.v === 'auto' ? 'auto' : Number(t.dataset.v) } }); break;
     case 'accuseRule': act({ type: 'settings', patch: { accuseRule: t.dataset.v } }); break;
+    case 'toggleHaunt': act({ type: 'settings', patch: { ghostHaunt: !(v.settings.ghostHaunt !== false) } }); break;
     case 'toggleQuiet': act({ type: 'settings', patch: { skipQuietDiscussion: !v.settings.skipQuietDiscussion } }); break;
     case 'customAction': customDurSheet('actionSec'); break;
     case 'customDiscussion': customDurSheet('discussionSec'); break;
@@ -1359,6 +1420,13 @@ function route() {
 }
 
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => reg.update()).catch(() => {});
+  // A new version took over: reload right away if we're not in the middle of a game.
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloaded) return;
+    if (!App.mode || (App.view && ['lobby', 'over'].includes(App.view.phase))) { reloaded = true; location.reload(); }
+    else toast('An update is ready — it will load after this game.', 4000);
+  });
 }
 render();

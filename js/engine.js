@@ -23,6 +23,7 @@ export const DEFAULTS = {
   killers: 'auto', // 'auto' | 1 | 2 | 3
   accuseRule: 'any', // 'any' = naming one Killer wins | 'all' = must name every living Killer
   skipQuietDiscussion: false, // no death -> straight back to Action
+  ghostHaunt: true, // dead players' ghosts can make a living player's screen flicker + vibrate
   specialRoles: false, // reserved for future roles
   minPlayers: MIN_PLAYERS,
 };
@@ -131,6 +132,7 @@ export class Game {
     if (patch.killers != null) st.killers = patch.killers === 'auto' ? 'auto' : clampSec(patch.killers, 1, 3);
     if (patch.accuseRule && ['any', 'all'].includes(patch.accuseRule)) st.accuseRule = patch.accuseRule;
     if (patch.skipQuietDiscussion != null) st.skipQuietDiscussion = !!patch.skipQuietDiscussion;
+    if (patch.ghostHaunt != null) st.ghostHaunt = !!patch.ghostHaunt;
     this.s.settings = st;
     return { ok: this.bump() };
   }
@@ -316,8 +318,10 @@ export class Game {
         if (!me.alive) return { ok: false, error: 'The dead do not report.' };
         if (r.reports[pid]) return { ok: false, error: 'Your report is already sealed.' };
         // A Killer who locked a target answers a different question: "Did you wink at them?"
-        if (me.role === ROLE.KILLER && r.targets[pid]) {
-          r.reports[pid] = { winked: false, suspect: null, confirm: !!a.confirm, at: now };
+        // Killers never answer "were you winked at?" (they can't be). With no locked target there
+        // is nothing to confirm, so their report is simply "I didn't wink".
+        if (me.role === ROLE.KILLER) {
+          r.reports[pid] = { winked: false, suspect: null, confirm: !!r.targets[pid] && !!a.confirm, at: now };
           return { ok: this.bump() };
         }
         const winked = !!a.winked;
