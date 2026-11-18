@@ -348,6 +348,7 @@ async function closeLobby() {
   App.bus.publish('meta', null, { retain: true });
   for (const p of App.game.s.players) App.bus.publish('av/' + p.id, null, { retain: true });
   store.del('host'); store.del('last');
+  await sleep(900); // let the goodbye messages flush before disconnecting
   teardown();
 }
 
@@ -371,7 +372,7 @@ async function clientJoin(code, preferredBroker = null) {
   await bus.subscribe('dn/' + App.me, onClientDn);
   await bus.subscribe('av/+', onAvatar);
   await bus.subscribe('meta', async (m) => {
-    if (!m) { if (App.view) { toast('The host closed the lobby.'); } return; }
+    if (!m) { if (App.view && App.mode === 'client') { toast('The host closed the lobby.', 3500); store.del('last'); teardown(); } return; }
     if (m.pub && (m.pub.x !== App.hostPub.x)) { App.hostPub = m.pub; App.hostKey = await net.deriveKey(ident.keys.priv, m.pub); clientHello(); }
   });
   if (App.profile.avatar) publishAvatar(App.me, App.profile.avatar);
