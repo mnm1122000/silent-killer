@@ -1,9 +1,9 @@
 // SILENT KILLER — app: screens, host loop, client flow, sound & effects per phase.
-import { Game, ROLE, MODES, MIN_PLAYERS, MAX_PLAYERS, roleCounts, maxKillers, CURSE_LIMIT } from './engine.js?v=6';
-import * as net from './net.js?v=6';
-import { sfx, vibrate } from './sfx.js?v=6';
-import { fx } from './fx.js?v=6';
-import { afterlife } from './afterlife.js?v=6';
+import { Game, ROLE, MODES, MIN_PLAYERS, MAX_PLAYERS, roleCounts, maxKillers, CURSE_LIMIT } from './engine.js?v=7';
+import * as net from './net.js?v=7';
+import { sfx, vibrate, canVibrate } from './sfx.js?v=7';
+import { fx } from './fx.js?v=7';
+import { afterlife } from './afterlife.js?v=7';
 
 // ======================================================================
 // utils
@@ -158,11 +158,13 @@ function testSound() {
   sfx.unlock();
   if (sfx.muted) sfx.setMuted(false);
   setTimeout(() => sfx.play('discussion', { vol: 1 }), 80);
+  vibrate([200, 100, 200]);
   setTimeout(() => {
     const st = sfx.status();
     const ok = st.ctx === 'running';
     toast(`${ok ? '🔊 Sound is ON' : '⚠️ Sound blocked — tap again'} · audio ${st.ctx} · ${st.loaded}/${st.total} sounds loaded. `
-      + 'Hear nothing? Turn Silent mode OFF, raise the media volume, close other apps using audio, disconnect Bluetooth.', 7000);
+      + 'Hear nothing? Turn Silent mode OFF, raise the media volume, close other apps using audio, disconnect Bluetooth. '
+      + (canVibrate() ? 'Your phone should also buzz — if not, turn on vibration / haptics in your phone settings.' : 'This browser cannot vibrate.'), 8000);
   }, 900);
   render();
 }
@@ -668,13 +670,40 @@ function render() {
   mountAfterlife();
 }
 
+// The winking eye: idle animation (looks around, blinks, then a slow sinister wink).
+let eyeN = 0;
+function eyeSVG(cls = '') {
+  const id = 'eye' + (++eyeN);
+  return `<svg class="eye-anim ${cls}" viewBox="0 0 220 150" aria-hidden="true">
+    <defs>
+      <radialGradient id="${id}i" cx="50%" cy="45%" r="55%"><stop offset="0" stop-color="#ff4b4b"/><stop offset=".55" stop-color="#a30b12"/><stop offset="1" stop-color="#300205"/></radialGradient>
+      <radialGradient id="${id}s" cx="50%" cy="50%" r="60%"><stop offset=".6" stop-color="#efe7da"/><stop offset="1" stop-color="#b9a99a"/></radialGradient>
+      <clipPath id="${id}c"><path d="M14 75 Q110 -5 206 75 Q110 150 14 75Z"/></clipPath>
+    </defs>
+    <path d="M14 75 Q110 -5 206 75 Q110 150 14 75Z" fill="url(#${id}s)"/>
+    <g clip-path="url(#${id}c)">
+      <g stroke="#b3121b" stroke-width="2.4" fill="none" opacity=".55" stroke-linecap="round">
+        <path d="M22 76 Q50 70 70 80 Q78 84 88 82"/><path d="M200 74 Q172 68 152 78 Q144 82 134 80"/><path d="M60 108 Q74 98 88 101"/>
+      </g>
+      <g class="eye-iris"><circle cx="110" cy="74" r="38" fill="url(#${id}i)"/><ellipse class="eye-pupil" cx="110" cy="74" rx="9" ry="26" fill="#050203"/><circle cx="97" cy="60" r="7" fill="#fff" opacity=".85"/></g>
+      <g class="eye-lid"><path d="M-10 -160 H230 V62 Q110 10 -10 62Z" fill="#170709"/><path d="M-10 62 Q110 10 230 62" stroke="#000" stroke-width="7" fill="none"/></g>
+      <g class="eye-lid-low"><path d="M-10 170 H230 V92 Q110 150 -10 92Z" fill="#170709"/></g>
+    </g>
+    <g class="eye-lash"><path d="M52 46 l-14 -18 M80 33 l-8 -22 M110 28 l0 -24 M140 33 l8 -22 M168 46 l14 -18" stroke="#000" stroke-width="6" stroke-linecap="round"/></g>
+    <path d="M14 75 Q110 -5 206 75 Q110 150 14 75Z" fill="none" stroke="#000" stroke-width="5"/>
+    <path class="eye-tear" d="M140 118 C140 118 128 138 128 148 a12 12 0 0 0 24 0 C152 138 140 118 140 118Z" fill="#d1121c"/>
+  </svg>`;
+}
+
 function rSplash() {
-  return `<div class="splash fade-in">
-    <img class="eye-logo" src="assets/img/logo.svg" alt="">
-    <div class="logo"><span class="flick">SILENT</span><span>KILLER</span></div>
-    <div class="tagline">One wink. One death. One detective.<br>Who can you trust?</div>
-    <button class="btn primary big block" data-act="enter">Enter… if you dare</button>
-    <div class="small">Turn your sound on (and Silent mode off). Best played in a room full of liars.</div>
+  return `<div class="splash intro">
+    <div class="madeby i1">Made by <b>mnm</b></div>
+    <div class="i2">${eyeSVG('eye-big')}</div>
+    <div class="logo i3"><span class="flick">SILENT</span><span>KILLER</span></div>
+    <div class="beta i4">BETA VERSION</div>
+    <div class="tagline i5">One wink. One death. One detective.<br>Who can you trust?</div>
+    <button class="btn primary big block i6" data-act="enter">Enter… if you dare</button>
+    <div class="small i6">Turn your sound on (and Silent mode off). Best played in a room full of liars.</div>
   </div>`;
 }
 
@@ -683,8 +712,9 @@ function rHome() {
   const last = store.get('last');
   const fresh = (x) => x && Date.now() - (x.savedAt || x.at || 0) < 8 * 3600e3;
   return `<div class="col fade-in" style="gap:18px;padding-top:30px">
-    <img class="eye-logo" src="assets/img/logo.svg" alt="" style="width:96px;height:96px;margin:0 auto;display:block;filter:drop-shadow(0 0 20px rgba(255,20,40,.5))">
+    ${eyeSVG('eye-mid')}
     <div class="logo"><span class="flick">SILENT</span><span>KILLER</span></div>
+    <div class="beta">BETA VERSION</div>
     <div class="tagline">One wink. One death. One detective. Who can you trust?</div>
     <div class="col" style="margin-top:10px">
       ${fresh(host) ? `<button class="btn primary big block" data-act="resumeHost">Resume hosting ${esc(host.code)}</button>` : ''}
@@ -695,6 +725,7 @@ function rHome() {
       <button class="btn ghost block" data-act="testSound">🔊 Test sound</button>
     </div>
     <div class="foot">5–20 players · everyone in the same room · one phone each</div>
+    <div class="madeby">Made by <b>mnm</b> · beta</div>
   </div>`;
 }
 
@@ -786,7 +817,7 @@ function rLobby(v) {
   const link = inviteLink();
   return `<div class="drip"></div>
   <div class="row"><button class="btn sm ghost" data-act="testSound">🔊 Test sound</button><div class="spacer"></div><button class="icon-btn" data-act="mute">${sfx.muted ? '🔇' : '🔊'}</button><button class="icon-btn" data-act="rules">📜</button></div>
-  <div class="logo" style="font-size:34px"><span class="flick">SILENT KILLER</span></div>
+  <div class="lobby-brand">${eyeSVG('eye-small')}<div><div class="logo" style="font-size:30px;text-align:left"><span class="flick">SILENT KILLER</span></div><div class="madeby" style="text-align:left">Made by <b>mnm</b> · <span class="beta inline">BETA</span></div></div></div>
   <div class="card blood code-box">
     <div class="label">Lobby code</div>
     <div class="code-big">${esc(v.code)}</div>

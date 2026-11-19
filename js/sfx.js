@@ -162,6 +162,34 @@ class Sfx {
 
 export const sfx = new Sfx();
 
-export function vibrate(pattern) {
-  try { navigator.vibrate && navigator.vibrate(pattern); } catch (_) {}
+// ---------- vibration ----------
+// Android: the Vibration API. iPhone Safari has no Vibration API, but since iOS 18 toggling a
+// native <input type=checkbox switch> plays a Taptic "tick" — we use that to fake vibration pulses.
+const IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function iosTick() {
+  try {
+    const label = document.createElement('label');
+    label.setAttribute('aria-hidden', 'true');
+    label.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.setAttribute('switch', '');
+    label.appendChild(input);
+    document.body.appendChild(label);
+    label.click();
+    setTimeout(() => label.remove(), 50);
+  } catch (_) {}
 }
+export function vibrate(pattern) {
+  const arr = Array.isArray(pattern) ? pattern : [pattern];
+  let done = false;
+  try { if (typeof navigator.vibrate === 'function') done = navigator.vibrate(arr); } catch (_) {}
+  if (done || !IS_IOS) return;
+  // iPhone: one Taptic tick every ~110 ms for each "on" segment of the pattern
+  let t = 0;
+  arr.forEach((ms, i) => {
+    if (i % 2 === 0) for (let k = 0; k < Math.max(1, Math.round(ms / 110)); k++) setTimeout(iosTick, t + k * 110);
+    t += ms;
+  });
+}
+export const canVibrate = () => typeof navigator.vibrate === 'function' || IS_IOS;

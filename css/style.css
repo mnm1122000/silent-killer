@@ -308,3 +308,43 @@ a { color: #ff8a92; }
 .lure-bar { width: 220px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
 .lure-bar i { display: block; height: 100%; background: var(--blood-hi); animation: lurebar 4.5s linear forwards; }
 @keyframes lurebar { from { width: 100%; } to { width: 0; } }
+
+/* ---------- intro / branding ---------- */
+.madeby { font-family: var(--font-type); font-size: 13px; color: var(--muted); letter-spacing: .12em; text-align: center; }
+.madeby b { color: var(--bone); letter-spacing: .25em; }
+.beta { display: inline-block; align-self: center; margin: -6px auto 0; font-size: 10px; font-weight: 800; letter-spacing: .32em; padding: 4px 10px 4px 13px; border-radius: 999px; color: #ffb3b9; border: 1px solid rgba(255,60,75,.45); background: rgba(150,10,25,.25); }
+.beta.inline { margin: 0; font-size: 9px; padding: 2px 7px 2px 9px; }
+.col > .beta { margin-left: auto; margin-right: auto; }
+.lobby-brand { display: flex; align-items: center; gap: 12px; justify-content: center; }
+.intro .i1, .intro .i2, .intro .i3, .intro .i4, .intro .i5, .intro .i6 { opacity: 0; animation: introIn .9s ease forwards; }
+.intro .i1 { animation-delay: .2s; }
+.intro .i2 { animation-delay: 1.1s; animation-duration: 1.6s; }
+.intro .i3 { animation-delay: 2.1s; }
+.intro .i4 { animation-delay: 2.7s; }
+.intro .i5 { animation-delay: 3.1s; }
+.intro .i6 { animation-delay: 3.5s; }
+@keyframes introIn { from { opacity: 0; transform: translateY(10px) scale(.97); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+
+/* ---------- the winking eye ---------- */
+.eye-anim { display: block; margin: 0 auto; overflow: visible; filter: drop-shadow(0 0 22px rgba(255,20,40,.45)); }
+.eye-big { width: 210px; height: 143px; }
+.eye-mid { width: 130px; height: 89px; }
+.eye-small { width: 64px; height: 44px; margin: 0; flex: none; }
+.eye-iris { animation: eyeLook 9s ease-in-out infinite; transform-box: view-box; }
+.eye-pupil { transform-origin: 110px 74px; animation: eyeDilate 9s ease-in-out infinite; }
+.eye-lid, .eye-lash { animation: eyeWink 9s ease-in-out infinite; }
+.eye-lid-low { animation: eyeWinkLow 9s ease-in-out infinite; }
+.eye-tear { opacity: 0; animation: eyeTear 9s ease-in infinite; }
+/* look left, look right, quick blink, glare at you, slow sinister wink */
+@keyframes eyeLook { 0%, 8% { transform: translate(0, 0); } 14%, 26% { transform: translate(-30px, 4px); } 32%, 44% { transform: translate(28px, -2px); } 50%, 100% { transform: translate(0, 0); } }
+@keyframes eyeDilate { 0%, 50% { transform: scale(1); } 56%, 66% { transform: scale(.55, .85); } 72%, 100% { transform: scale(1); } }
+@keyframes eyeWink {
+  0%, 18% { transform: translateY(0); }
+  20% { transform: translateY(70px); } 22% { transform: translateY(0); }       /* blink */
+  60% { transform: translateY(0); } 70% { transform: translateY(16px); }      /* narrow, suspicious */
+  76%, 81% { transform: translateY(72px); }                                 /* WINK (hold) */
+  88%, 100% { transform: translateY(0); }
+}
+@keyframes eyeWinkLow { 0%, 18% { transform: translateY(0); } 20% { transform: translateY(-14px); } 22%, 70% { transform: translateY(0); } 76%, 81% { transform: translateY(-16px); } 88%, 100% { transform: translateY(0); } }
+@keyframes eyeTear { 0%, 80% { opacity: 0; transform: translateY(0); } 83% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(26px); } }
+@media (prefers-reduced-motion: reduce) { .eye-iris, .eye-pupil, .eye-lid, .eye-lash, .eye-lid-low, .eye-tear { animation: none !important; } }
