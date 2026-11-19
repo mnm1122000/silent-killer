@@ -1,7 +1,7 @@
 // SILENT KILLER service worker.
 // Code (html/js/css) is ALWAYS revalidated with the server so phones never run an old
 // version. Sounds/images are cached (fast + offline-safe); bump CACHE when they change.
-const CACHE = 'sk-assets-v4';
+const CACHE = 'sk-assets-v5';
 self.addEventListener('install', () => { self.skipWaiting(); });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));

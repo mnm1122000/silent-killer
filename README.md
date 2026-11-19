@@ -33,6 +33,12 @@ A real-life social deduction party game for 5–20 players in the same room. Eac
 | Quiet rounds | The announcement says "No bodies found". An optional setting skips the discussion and goes straight to the next Action Phase. |
 | Host powers | The host can pause and resume, skip waiting phases (reveal, report, announcement, discussion) and end the game. The host **cannot skip the Action Phase** and has no access to roles. |
 
+## Killer lures 🧲
+
+After locking a target, a Killer can **lure** them once per round. The Killer picks anyone alive except the target, including himself. The target's phone vibrates and shows a full-screen **"LOOK AT [name]"** with that person's photo for about 4 seconds. Pick yourself to get eye contact for the wink, or someone else as a decoy (for example, so you can wink while they're looking away).
+
+To stop a lure from exposing the Killer, the game also sends **phantom lures**: about one random "LOOK AT…" prompt per three living players, at random moments of every Action phase, to random players. Getting a prompt proves nothing, which matters most when the Killer has locked the Police. Lures make no sound, only vibration. The host can turn lures off ("Killer lures" in the lobby settings). The results screen shows every real lure.
+
 ## The Afterlife
 
 Eliminated players must stay silent, so their phone turns into **The Afterlife**. They drag a ghost, labelled with their name, around the screen. Touching the floating names of living players "haunts" them (BOO!): that player's screen flickers with the ghost's profile picture at low opacity and their phone vibrates. Vibration works on Android; iPhones don't allow websites to vibrate. Other dead players' ghosts float there too. The host can switch haunting off in the lobby settings ("Ghosts can haunt the living"). Haunts are rate-limited.
@@ -81,7 +87,7 @@ Code files are always revalidated by the service worker, so phones don't run an 
 
 ```
 node tools/serve.cjs          # http://localhost:5190  (add ?dev=1 for "Add bot" test players)
-node tools/test-engine.js     # 22 rule tests (scenarios A–D, curse, accusations, multi-killer…)
+node tools/test-engine.js     # 25 rule tests (scenarios A–D, curse, accusations, multi-killer…)
 node tools/gen-sfx.cjs        # regenerate sounds (needs ffmpeg)
 python tools/xlsx_to_json.py  # re-import the scenario spreadsheet
 ```

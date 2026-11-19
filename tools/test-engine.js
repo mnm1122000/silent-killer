@@ -284,4 +284,36 @@ test('scenarios do not repeat until pool exhausted', () => {
   assert.equal(ids.size, scenarios.length);
 });
 
+test('lure: killer must lock first, one per round, sends LOOK AT to the target only', () => {
+  const g = setup(6); assign(g, { p1: ROLE.KILLER, p2: ROLE.POLICE });
+  toAction(g); g.drainEvents();
+  assert.equal(g.handle('p1', { type: 'lure', look: 'p1' }, now).ok, false, 'needs a locked target');
+  g.handle('p1', { type: 'target', target: 'p3' }, now);
+  assert.equal(g.handle('p1', { type: 'lure', look: 'p3' }, now).ok, false, 'cannot make target look at themselves');
+  assert.equal(g.handle('p4', { type: 'lure', look: 'p1' }, now).ok, false, 'only killers');
+  assert.equal(g.handle('p1', { type: 'lure', look: 'p1' }, now).ok, true, 'killer may lure the target to look at himself');
+  assert.deepEqual(g.drainEvents(), [{ to: 'p3', type: 'lure', look: 'p1' }]);
+  assert.equal(g.handle('p1', { type: 'lure', look: 'p4' }, now).ok, false, 'one lure per round');
+  assert.equal(g.viewFor('p1', now).me.lure, 'p1');
+  assert.ok(!JSON.stringify(g.viewFor('p3', now)).includes('"lure"'), 'target view has no lure info');
+});
+
+test('phantom lures: every action phase sends random LOOK AT prompts to living players', () => {
+  const g = setup(9); assign(g, { p1: ROLE.KILLER, p2: ROLE.POLICE });
+  toAction(g);
+  assert.equal(g.cur.phantoms.length, 3);
+  now += 1e6; g.tick(now, ctx);
+  const ev = g.drainEvents().filter((e) => e.type === 'lure');
+  assert.equal(ev.length, 3);
+  for (const e of ev) { assert.notEqual(e.to, e.look); assert.ok(g.p(e.to).alive); }
+});
+
+test('lures can be switched off by the host', () => {
+  const g = setup(6, { lures: false }); assign(g, { p1: ROLE.KILLER, p2: ROLE.POLICE });
+  toAction(g);
+  g.handle('p1', { type: 'target', target: 'p3' }, now);
+  assert.equal(g.handle('p1', { type: 'lure', look: 'p1' }, now).ok, false);
+  assert.equal(g.cur.phantoms.length, 0);
+});
+
 console.log(`\n${pass} tests passed`);

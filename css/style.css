@@ -295,3 +295,16 @@ a { color: #ff8a92; }
 .crime.escape::before { content: 'MARKED'; background: #2c4a86; }
 .crime.escape .c-title, .crime.escape .c-victim { color: #23417a; }
 .crime.escape .stamp { border-color: rgba(35,65,122,.7); color: rgba(35,65,122,.8); }
+
+/* ---------- lure: LOOK AT <name> ---------- */
+#lure { position: fixed; inset: 0; z-index: 58; display: none; place-items: center; padding: 20px; background: radial-gradient(circle, rgba(45,0,6,.96), rgba(0,0,0,.98)); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+#lure.on { display: grid; animation: lurein .35s ease-out; }
+@keyframes lurein { from { opacity: 0; transform: scale(1.06); } }
+.lure-box { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.lure-eye { font-size: 46px; animation: blink 1.2s infinite; }
+.lure-t { font-family: var(--font-horror); font-size: 34px; letter-spacing: 3px; color: var(--bone); }
+.lure-name { font-family: var(--font-horror); font-size: 46px; line-height: 1; color: var(--blood-hi); text-shadow: 0 0 24px rgba(255,30,50,.6); animation: pulse .6s infinite alternate; }
+.lure-sub { font-family: var(--font-type); color: var(--bone); max-width: 30ch; }
+.lure-bar { width: 220px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
+.lure-bar i { display: block; height: 100%; background: var(--blood-hi); animation: lurebar 4.5s linear forwards; }
+@keyframes lurebar { from { width: 100%; } to { width: 0; } }

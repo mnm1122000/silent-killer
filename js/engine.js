@@ -24,6 +24,7 @@ export const DEFAULTS = {
   accuseRule: 'any', // 'any' = naming one Killer wins | 'all' = must name every living Killer
   skipQuietDiscussion: false, // no death -> straight back to Action
   ghostHaunt: true, // dead players' ghosts can make a living player's screen flicker + vibrate
+  lures: true, // Killers can make their locked target's phone say "LOOK AT <someone>"; phantom lures hide them
   specialRoles: false, // reserved for future roles
   minPlayers: MIN_PLAYERS,
 };
@@ -133,6 +134,7 @@ export class Game {
     if (patch.accuseRule && ['any', 'all'].includes(patch.accuseRule)) st.accuseRule = patch.accuseRule;
     if (patch.skipQuietDiscussion != null) st.skipQuietDiscussion = !!patch.skipQuietDiscussion;
     if (patch.ghostHaunt != null) st.ghostHaunt = !!patch.ghostHaunt;
+    if (patch.lures != null) st.lures = !!patch.lures;
     this.s.settings = st;
     return { ok: this.bump() };
   }
@@ -168,12 +170,44 @@ export class Game {
     return { ok: true };
   }
 
-  startRound(now) {
+  startRound(now, rng) {
     const s = this.s;
     s.round++;
-    s.rounds.push({ n: s.round, targets: {}, lockedAt: {}, reports: {}, items: [], warnings: [], killerResults: {}, aliveAtStart: this.alive().map((x) => x.id) });
+    s.rounds.push({ n: s.round, targets: {}, lockedAt: {}, reports: {}, items: [], warnings: [], killerResults: {}, lures: {}, phantoms: [], aliveAtStart: this.alive().map((x) => x.id) });
     s.announcement = null;
     this.setPhase('action', s.settings.actionSec * 1000, now);
+    if (s.settings.lures !== false) this.planPhantoms(now, rng || defaultRng);
+  }
+
+  // ---------- lures ----------
+  // Private events for the host app to deliver (e.g. "make this phone show LOOK AT x").
+  emit(ev) { (this.outbox || (this.outbox = [])).push(ev); }
+  drainEvents() { const e = this.outbox || []; this.outbox = []; return e; }
+
+  // Phantom lures: random "LOOK AT x" prompts the GAME sends to random living players at random
+  // moments of every Action Phase. They make a real Killer lure indistinguishable from noise,
+  // so receiving one never proves who the Killer is (important when the target is the Police).
+  planPhantoms(now, rng) {
+    const r = this.cur, alive = this.alive();
+    if (alive.length < 3) return;
+    const n = Math.max(1, Math.round(alive.length / 3));
+    const dur = this.s.settings.actionSec * 1000;
+    for (let i = 0; i < n; i++) {
+      const to = alive[Math.floor(rng() * alive.length)];
+      const others = alive.filter((x) => x.id !== to.id);
+      const look = others[Math.floor(rng() * others.length)];
+      r.phantoms.push({ at: now + dur * (0.12 + 0.7 * rng()), to: to.id, look: look.id, sent: false });
+    }
+  }
+  firePhantoms(now) {
+    const r = this.cur;
+    if (!r || !r.phantoms) return;
+    for (const ph of r.phantoms) {
+      if (ph.sent || now < ph.at) continue;
+      ph.sent = true;
+      const to = this.p(ph.to), look = this.p(ph.look);
+      if (to && to.alive && look && look.alive) this.emit({ to: ph.to, type: 'lure', look: ph.look });
+    }
   }
 
   // ---------- the core: validation against secret target records ----------
@@ -270,6 +304,7 @@ export class Game {
         if (due || this.alive().every((x) => x.ready)) { this.startRound(now); return true; }
         return false;
       case 'action':
+        this.firePhantoms(now);
         if (due) { this.setPhase('report', s.settings.reportSec * 1000, now); return true; }
         return false;
       case 'report':
@@ -321,6 +356,21 @@ export class Game {
         const t = this.p(a.target);
         if (!t || !t.alive || t.id === pid || t.role === ROLE.KILLER) return { ok: false, error: 'Invalid target.' };
         r.targets[pid] = t.id; r.lockedAt[pid] = now;
+        return { ok: this.bump() };
+      }
+
+      case 'lure': {
+        // Killer makes their locked target's phone say "LOOK AT <someone>" (anyone alive but the
+        // target, including the Killer). One lure per Killer per round.
+        if (s.phase !== 'action' || s.settings.lures === false) return { ok: false, error: 'You can only lure during the Action Phase.' };
+        if (me.role !== ROLE.KILLER || !me.alive) return { ok: false, error: 'Not allowed.' };
+        const victim = r.targets[pid];
+        if (!victim) return { ok: false, error: 'Lock a target first.' };
+        if (r.lures[pid]) return { ok: false, error: 'You already used your lure this round.' };
+        const look = this.p(a.look);
+        if (!look || !look.alive || look.id === victim) return { ok: false, error: 'Pick someone else for them to look at.' };
+        r.lures[pid] = look.id;
+        this.emit({ to: victim, type: 'lure', look: look.id });
         return { ok: this.bump() };
       }
 
@@ -423,6 +473,7 @@ export class Game {
       v.me.failed = s.killers[pid].failed;
       v.me.curseLimit = CURSE_LIMIT;
       if (r && ['action', 'report'].includes(s.phase)) v.me.target = r.targets[pid] || null;
+      if (r && s.phase === 'action') v.me.lure = r.lures[pid] || null;
     }
     if (me.role === ROLE.POLICE) v.me.accused = !!s.accusation;
     if (r && s.phase === 'report') {
@@ -442,7 +493,7 @@ export class Game {
         ...s.result,
         accusation: s.accusation,
         history: s.rounds.map((rd) => ({
-          n: rd.n, targets: rd.targets, killerResults: rd.killerResults, warnings: rd.warnings,
+          n: rd.n, targets: rd.targets, killerResults: rd.killerResults, warnings: rd.warnings, lures: rd.lures || {},
           deaths: rd.items.filter((i) => i.kind === 'death').map((i) => i.pid),
           escapes: rd.items.filter((i) => i.kind === 'escape').map((i) => i.pid),
           curses: rd.items.filter((i) => i.kind === 'curse').map((i) => i.pid),

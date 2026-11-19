@@ -1,9 +1,9 @@
 // SILENT KILLER — app: screens, host loop, client flow, sound & effects per phase.
-import { Game, ROLE, MODES, MIN_PLAYERS, MAX_PLAYERS, roleCounts, maxKillers, CURSE_LIMIT } from './engine.js?v=5';
-import * as net from './net.js?v=5';
-import { sfx, vibrate } from './sfx.js?v=5';
-import { fx } from './fx.js?v=5';
-import { afterlife } from './afterlife.js?v=5';
+import { Game, ROLE, MODES, MIN_PLAYERS, MAX_PLAYERS, roleCounts, maxKillers, CURSE_LIMIT } from './engine.js?v=6';
+import * as net from './net.js?v=6';
+import { sfx, vibrate } from './sfx.js?v=6';
+import { fx } from './fx.js?v=6';
+import { afterlife } from './afterlife.js?v=6';
 
 // ======================================================================
 // utils
@@ -323,7 +323,21 @@ function saveHost() {
   }, 200);
 }
 
+// Private events from the engine (lures) go only to the one phone they are for.
+function deliverEvents() {
+  const g = App.game;
+  if (!g) return;
+  for (const ev of g.drainEvents()) {
+    if (ev.type !== 'lure') continue;
+    const to = g.p(ev.to);
+    if (!to || to.bot) continue;
+    if (ev.to === App.me) showLure(ev.look);
+    else sendTo(ev.to, { type: 'lure', look: ev.look });
+  }
+}
+
 function afterChange() {
+  deliverEvents();
   saveHost();
   publishMeta();
   broadcast();
@@ -337,6 +351,7 @@ function hostTick() {
   const now = Date.now();
   if (DEV) runBots(now);
   if (g.tick(now, engineCtx())) afterChange();
+  else deliverEvents(); // phantom lures fire mid-phase without changing the state
 }
 
 // ---- dev bots (host-side test players; ?dev=1 only) ----
@@ -361,6 +376,7 @@ function runBots(now) {
     if (s.phase === 'action' && b.role === ROLE.KILLER && !g.cur.targets[b.id]) {
       const opts = g.alive().filter((p) => p.id !== b.id && p.role !== ROLE.KILLER);
       if (opts.length) g.handle(b.id, { type: 'target', target: opts[Math.floor(Math.random() * opts.length)].id }, now);
+      if (Math.random() < 0.6) g.handle(b.id, { type: 'lure', look: Math.random() < 0.5 ? b.id : g.alive().filter((p) => p.id !== g.cur.targets[b.id])[0].id }, now);
       afterChange();
     }
     if (s.phase === 'report' && !g.cur.reports[b.id]) {
@@ -442,6 +458,7 @@ async function onClientDn(data) {
   let msg;
   try { msg = await net.unseal(App.hostKey, data); } catch (_) { return; }
   if (msg.type === 'haunt') { showHaunt(msg.from); return; }
+  if (msg.type === 'lure') { showLure(msg.look); return; }
   if (msg.type === 'view') { App.lastViewAt = Date.now(); netBanner(null); App.screen = 'game'; applyView(msg.v); }
   else if (msg.type === 'error') {
     toast(msg.error, 3500);
@@ -450,6 +467,36 @@ async function onClientDn(data) {
     else render();
   }
 }
+
+// "LOOK AT <name>": a Killer's lure, or one of the game's random phantom lures — the phone
+// can't tell you which. Silent (no sound), just vibration, so the room hears nothing.
+function showLure(look) {
+  const v = App.view;
+  if (!v || !v.me.alive || v.phase !== 'action') return;
+  const p = v.players.find((x) => x.id === look);
+  if (!p) return;
+  const el = document.getElementById('lure');
+  if (!el) return;
+  const you = look === v.me.id;
+  el.innerHTML = `<div class="lure-box">
+      <div class="lure-eye">👁</div>
+      <div class="lure-t">LOOK AT</div>
+      ${av(p.id, p.name, 'xl')}
+      <div class="lure-name">${you ? 'YOURSELF?!' : esc(p.name)}</div>
+      <div class="lure-sub">The spirits demand it… look ${you ? 'around you' : `at ${esc(p.name)}`} now.</div>
+      <div class="lure-bar"><i></i></div>
+      <div class="small">Tap to close</div>
+    </div>`;
+  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  clearTimeout(showLure._t);
+  showLure._t = setTimeout(() => el.classList.remove('on'), 4500);
+  vibrate([220, 90, 220, 90, 420]);
+  fx.shake();
+}
+document.addEventListener('pointerdown', (e) => {
+  const el = document.getElementById('lure');
+  if (el && el.classList.contains('on') && el.contains(e.target)) el.classList.remove('on');
+}, true);
 
 function showHaunt(from) {
   const v = App.view;
@@ -799,6 +846,7 @@ function rSettings(v, host) {
     <div class="label" style="margin-top:14px">Police wins by naming</div>
     <div class="chips">${chip(s.accuseRule === 'any', 'accuseRule', 'any', 'Any one Killer')}${chip(s.accuseRule === 'all', 'accuseRule', 'all', 'Every living Killer')}</div>
     <div class="switch" style="margin-top:12px"><div><div style="font-weight:600">Skip discussion after a quiet round</div><div class="small">No body → straight to the next Action Phase</div></div><div class="toggle ${s.skipQuietDiscussion ? 'on' : ''} ${host ? '' : 'disabled'}" ${host ? 'data-act="toggleQuiet"' : ''}></div></div>
+    <div class="switch"><div><div style="font-weight:600">Killer lures</div><div class="small">A Killer can make their target's phone say "LOOK AT…" (with random fake lures for cover)</div></div><div class="toggle ${s.lures !== false ? 'on' : ''} ${host ? '' : 'disabled'}" ${host ? 'data-act="toggleLures"' : ''}></div></div>
     <div class="switch"><div><div style="font-weight:600">Ghosts can haunt the living</div><div class="small">A dead player's ghost makes your screen flash their face + vibrate</div></div><div class="toggle ${s.ghostHaunt !== false ? 'on' : ''} ${host ? '' : 'disabled'}" ${host ? 'data-act="toggleHaunt"' : ''}></div></div>
     <div class="switch"><div><div style="font-weight:600">Special roles</div><div class="small">Doctor, Informant, Jester… coming soon</div></div><div class="toggle disabled"></div></div>
   </div>`;
@@ -904,6 +952,9 @@ function rAction(v) {
       const t = P(me.target);
       return `${silenceBanner()}<div class="card"><h3>Mark your suspects</h3><div class="small" style="margin-bottom:10px">🔒 Locked: <b>${esc(t.name)}</b> — now wink at them. Failed rounds: ${me.failed}/${me.curseLimit}</div>
         ${grid(others, { marks: true })}</div>
+        ${v.settings.lures !== false ? (me.lure
+          ? `<div class="small center">🧲 Lure used: ${esc(t.name)} was told to look at <b>${me.lure === me.id ? 'you' : esc(P(me.lure)?.name)}</b>.</div>`
+          : `<button class="btn block" data-act="lureOpen">🧲 Lure ${esc(t.name)} — make them look at someone</button>`) : ''}
         ${roleTip('killer', t.name)}`;
     }
     return `${silenceBanner()}<div class="card"><h3>Choose your target</h3><div class="small" style="margin-bottom:10px">Tap a face, then lock it. One target per round — you can't change it.</div>
@@ -921,10 +972,10 @@ function rAction(v) {
 function roleTip(role, targetName) {
   const tips = {
     killer: targetName
-      ? `🔪 <b>Your move.</b> Mingle silently and <b>wink at ${esc(targetName)}</b> to kill them. Make it quick — if anyone, especially the Police, catches your wink, you're exposed.<br><span class="small">After the timer you confirm: "YES, I winked at ${esc(targetName)}".</span>`
+      ? `🔪 <b>Your move.</b> Use 🧲 <b>Lure</b> to make ${esc(targetName)} look at you (or at a decoy). Mingle silently and <b>wink at ${esc(targetName)}</b> to kill them. Make it quick — if anyone, especially the Police, catches your wink, you're exposed.<br><span class="small">After the timer you confirm: "YES, I winked at ${esc(targetName)}".</span>`
       : `🔪 <b>Pick your victim</b>, lock them, then mingle silently and <b>wink at them</b> to kill. Don't let anyone catch you winking.`,
     police: `🔎 <b>You are the detective.</b> Mingle silently and <b>watch everyone's eyes</b>. Catch the person who winks at others. You can't be killed. When you're sure, open 👁️ → <b>Accuse</b> — you only get one chance.`,
-    netizen: `👀 <b>Survive.</b> Mingle silently and watch the eyes. If someone winks at you: <b>stay calm, don't react, don't say anything</b>. Remember who it was and report it when the timer ends.`,
+    netizen: `👀 <b>Survive.</b> Mingle silently and watch the eyes. If your phone says "LOOK AT…", look — it might be a Killer's lure, or just the spirits playing tricks. If someone winks at you: <b>stay calm, don't react, don't say anything</b>. Remember who it was and report it when the timer ends.`,
   };
   return `<div class="card type center tip" style="font-size:14px">${tips[role] || tips.netizen}</div>`;
 }
@@ -1073,6 +1124,7 @@ function rOver(v) {
       const how = !kr.confirmed ? '→ never confirmed a wink (no kill)' : kr.escaped ? `→ winked, but ${esc(tp?.name)} didn't notice (escaped once)` : h.deaths.includes(kr.target) ? '→ winked → <b style="color:var(--blood-hi)">killed</b>' : tp && tp.role === ROLE.POLICE ? '→ winked, but the Police is immune' : '→ survived';
       return `🔪 ${kn} targeted ${esc(tp?.name)} ${how}`;
     });
+    Object.entries(h.lures || {}).forEach(([k, look]) => lines.push(`🧲 ${esc(P(k)?.name)} lured ${esc(P(h.targets[k])?.name)} to look at ${k === look ? 'the Killer themself' : esc(P(look)?.name)}`));
     h.curses.forEach((c) => lines.push(`☠️ ${esc(P(c)?.name)} was consumed by the curse`));
     if (h.warnings.length) lines.push(`⚠️ False reports: ${h.warnings.map((w) => esc(P(w)?.name)).join(', ')}`);
     return `<div class="tl-round"><b>Round ${h.n}</b><br>${lines.join('<br>') || 'Nothing happened.'}</div>`;
@@ -1112,6 +1164,7 @@ function rulesHTML() {
     <li><b>Validation:</b> the game checks reports against the Killers' locked targets.</li>
     <li><b>Crime Scene:</b> victims are announced with a fictional incident. The Killer is never revealed.</li>
     <li><b>Discussion:</b> argue, accuse, survive. The dead stay silent.</li></ul>
+  <h4>Lures 🧲</h4><p>After locking a target, a Killer may <b>lure</b> them once per round: the target's phone vibrates and shows <b>"LOOK AT …"</b> with someone's face — the Killer himself (to get eye contact for the wink) or anyone else as a decoy. The game also sends <b>random fake lures</b> to random players every round, so a "LOOK AT" prompt never proves who the Killer is. When you get one: look, but stay silent.</p>
   <h4>Didn't notice the wink?</h4><p>If the Killer confirms the wink but the victim answered "nobody winked at me", the victim <b>escapes once</b>. Everyone is told that someone winked at them and they didn't notice, and they are marked 👁. The next confirmed wink on a marked player kills them for sure. A victim who answers YES dies right away.</p>
   <h4>How a kill works</h4><p>A kill needs two things from the Killer's phone: the target <b>locked</b> during the Action Phase, and the Killer <b>confirming "YES, I winked at them"</b> in the Report Phase. Then the victim dies — even if they missed the wink, said nobody winked at them, or named the wrong person. If the Killer answers NO (couldn't wink in time), nobody dies and it counts as a failed round. Winking at anyone you didn't lock is only a bluff.</p>
   <h4>Immune</h4><p>The Police and other Killers cannot be killed. A Killer who locks the Police wastes the round.</p>
@@ -1133,6 +1186,19 @@ function roleSheet() {
     ${v.me.warnings ? `<div class="small center">Your warnings: ${v.me.warnings}</div>` : ''}
     ${canAccuse ? `<button class="btn primary block" data-act="accuseOpen">⚖️ Make my accusation</button>` : ''}
     <button class="btn block" data-act="closeModal">Close</button>`);
+}
+
+function lureSheet() {
+  const v = App.view;
+  const t = P(v.me.target);
+  if (!t) return;
+  const opts = v.players.filter((p) => p.alive && p.id !== t.id);
+  openModal(`<div class="title">Lure ${esc(t.name)}</div>
+    <div class="sub">${esc(t.name)}'s phone will vibrate and flash <b>"LOOK AT …"</b> with the face you pick. Pick <b>yourself</b> to get eye contact for your wink — or someone else as a decoy. One lure per round.</div>
+    <div class="small center">The game also sends random fake "LOOK AT" prompts to everyone, so a lure never gives you away.</div>
+    ${grid(opts.map((p) => (p.id === v.me.id ? { ...p, name: p.name + ' (you)' } : p)), { selected: [App.ui.lureSel], act: 'lurePick', marks: false })}
+    <button class="btn primary big block" data-act="lureGo" ${App.ui.lureSel ? '' : 'disabled'}>${App.ui.lureSel ? `🧲 Make ${esc(t.name)} look at ${App.ui.lureSel === v.me.id ? 'me' : esc(P(App.ui.lureSel)?.name)}` : 'Pick who they should look at'}</button>
+    <button class="btn ghost block" data-act="closeModal">Cancel</button>`, { onClose: () => { App.ui.lureSel = null; } });
 }
 
 function accuseSheet() {
@@ -1323,6 +1389,7 @@ document.addEventListener('click', async (e) => {
     case 'reportSec': act({ type: 'settings', patch: { reportSec: Number(t.dataset.v) } }); break;
     case 'killers': act({ type: 'settings', patch: { killers: t.dataset.v === 'auto' ? 'auto' : Number(t.dataset.v) } }); break;
     case 'accuseRule': act({ type: 'settings', patch: { accuseRule: t.dataset.v } }); break;
+    case 'toggleLures': act({ type: 'settings', patch: { lures: !(v.settings.lures !== false) } }); break;
     case 'toggleHaunt': act({ type: 'settings', patch: { ghostHaunt: !(v.settings.ghostHaunt !== false) } }); break;
     case 'toggleQuiet': act({ type: 'settings', patch: { skipQuietDiscussion: !v.settings.skipQuietDiscussion } }); break;
     case 'customAction': customDurSheet('actionSec'); break;
@@ -1361,6 +1428,9 @@ document.addEventListener('click', async (e) => {
     case 'confirmYes': App.ui.busy = true; render(); sfx.play('submit'); act({ type: 'report', confirm: true }); break;
     case 'confirmNo': App.ui.busy = true; render(); sfx.play('submit'); act({ type: 'report', confirm: false }); break;
     case 'sealNo': App.ui.busy = true; render(); sfx.play('submit'); act({ type: 'report', winked: false }); break;
+    case 'lureOpen': App.ui.lureSel = null; lureSheet(); break;
+    case 'lurePick': { const keep = t.dataset.id; App.modalClose = null; closeModal(); App.ui.lureSel = keep; lureSheet(); break; }
+    case 'lureGo': { const look = App.ui.lureSel; App.modalClose = null; closeModal(); App.ui.lureSel = null; if (look) act({ type: 'lure', look }); break; }
     case 'accuseOpen': App.ui.accuse = []; closeModal(); accuseSheet(); break;
     case 'accusePick': {
       const need = v.settings.accuseRule === 'all' ? v.killersAlive : 1;
